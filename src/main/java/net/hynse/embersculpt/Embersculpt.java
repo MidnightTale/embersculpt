@@ -10,14 +10,16 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listener {
 
-    private static final double TEMPERATURE_CHANGE_RATE = 0.5; // Adjust this value as needed
-    private static final int MAX_BLOCKS_ABOVE_PLAYER = 5; // Adjust this value as needed
     private static final int MAX_TEMPERATURE = 100;
     private static final int MIN_TEMPERATURE = -100;
+    private final Map<UUID, Double> temperatureStorage = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -40,10 +42,8 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             int skylightLevel = player.getLocation().getBlock().getLightFromSky();
 
             if (skylightLevel >= 8 && skylightLevel <= 15) {
-                // Skylight level is high
-                temperatureChange += Math.min(1.0, (15 - skylightLevel) * 0.05); // Increase temperature by max 1, minimum 0.05 per skylight level
-            } else if (skylightLevel <= 7) {
-                // Skylight level is low or zero
+                temperatureChange += Math.max(0.1, 1.0 - (skylightLevel - 8) * 0.1);
+            } else {
                 // No change in temperature
             }
 
@@ -55,25 +55,21 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         }
     }
 
-
-
     private double getPlayerTemperature(Player player) {
-        // Implement your method to retrieve player temperature from storage
-        // Example: return temperatureStorage.get(player.getUniqueId());
-        return 0; // Replace with actual implementation
+        return temperatureStorage.getOrDefault(player.getUniqueId(), 0.0);
     }
 
     private void setPlayerTemperature(Player player, double temperature) {
-        // Implement your method to store player temperature
-        // Example: temperatureStorage.put(player.getUniqueId(), temperature);
+        temperatureStorage.put(player.getUniqueId(), temperature);
     }
 
     private void updateActionBar(Player player, double temperature, double temperatureChange, int skylightLevel) {
         int roundedTemperature = (int) Math.round(temperature);
+        String formattedTemperatureChange = String.format("%.2f", temperatureChange);
+
         String actionBarMessage = ChatColor.GOLD + "Temperature: " + ChatColor.RED + roundedTemperature
-                + ChatColor.YELLOW + " | Rate Change: " + temperatureChange
+                + ChatColor.YELLOW + " | Rate Change: " + formattedTemperatureChange
                 + ChatColor.YELLOW + " | Skylight Level: " + skylightLevel;
         player.sendActionBar(actionBarMessage);
     }
-
 }
