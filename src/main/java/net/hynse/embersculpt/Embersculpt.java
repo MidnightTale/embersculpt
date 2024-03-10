@@ -4,10 +4,7 @@ import com.google.gson.Gson;
 import me.nahu.scheduler.wrapper.FoliaWrappedJavaPlugin;
 import me.nahu.scheduler.wrapper.WrappedScheduler;
 import me.nahu.scheduler.wrapper.runnable.WrappedRunnable;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,16 +19,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.bukkit.Material.*;
-
 public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listener {
 
     private static final int MAX_TEMPERATURE = 100;
     private static final int MIN_TEMPERATURE = -100;
     private final Map<UUID, Double> temperatureStorage = new HashMap<>();
     private final Gson gson = new Gson();
-    private static final long MAX_SPRINT_DURATION = 60000; // Maximum sprinting duration in milliseconds (e.g., 60 seconds)
-    private static final long MAX_WALK_DURATION = 120000;  // Maximum walking duration in milliseconds (e.g., 120 seconds)
+    private static final long MAX_SPRINT_DURATION = 180000; // Maximum sprinting duration in milliseconds (e.g., 60 seconds)
     private Map<UUID, Long> sprintStartTime = new HashMap<>();
     private Map<UUID, Long> walkStartTime = new HashMap<>();
 
@@ -45,7 +39,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             public void run() {
                 updatePlayerTemperature(scheduler);
             }
-        }.runTaskTimer(this, 1L, 20L);
+        }.runTaskTimer(this, 1, 20);
     }
 
     @EventHandler
@@ -94,7 +88,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             exponentialFactor = Math.max(0.01, Math.min(0.99, exponentialFactor));
 
             // Adjust temperature based on light sources
-            temperatureChange += adjustTemperatureBasedOnLight(player, blockLightLevel, isDay, exponentialFactor, biomeTemperature);
+            temperatureChange += adjustTemperatureBasedOnLight(player, isDay, biomeTemperature);
 
             // Additional adjustment for lower light levels
             if (blockLightLevel >= 8 && blockLightLevel < 14) {
@@ -114,31 +108,32 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
             // Apply physical activity factor
             temperatureChange += physicalActivityFactor;
-            // Adjust the current temperature towards the target smoothly
             double currentTemperature = getPlayerTemperature(player);
-            double targetTemperature = currentTemperature + temperatureChange;
-            double transitionRate = 0.01; // Define your desired transition rate here
+            double newTemperature = Math.min(MAX_TEMPERATURE, Math.max(MIN_TEMPERATURE, currentTemperature + temperatureChange));
 
-            if (currentTemperature < targetTemperature) {
-                currentTemperature = Math.min(targetTemperature, currentTemperature + transitionRate);
-            } else if (currentTemperature > targetTemperature) {
-                currentTemperature = Math.max(targetTemperature, currentTemperature - transitionRate);
-            }
-
-            setPlayerTemperature(player, currentTemperature);
-            updateActionBar(player, currentTemperature, temperatureChange, skylightFactor, temperatureFactor, biomeTemperature, timeFactor, exponentialFactor, freezingFactor, weatherFactor, physicalActivityFactor, armorInsulationFactor);
-
+            setPlayerTemperature(player, newTemperature);
+            updateActionBar(player, newTemperature, temperatureChange, skylightFactor, temperatureFactor, biomeTemperature, timeFactor, exponentialFactor, freezingFactor, weatherFactor, physicalActivityFactor, armorInsulationFactor);
         }
     }
 
-    private double adjustTemperatureBasedOnLight(Player player, int blockLightLevel, boolean isDay, double exponentialFactor, double biomeTemperature) {
+    private double adjustTemperatureBasedOnLight(Player player, boolean isDay, double biomeTemperature) {
         double temperatureChange = 0;
 
-        // Set target temperature based on block light levels during day and night
+        // Get the block below the player's location
+        Location playerLocation = player.getLocation();
+        int blockLightLevel = playerLocation.getBlock().getLightLevel();
+
+        // Get the light level from other light sources in the area
+        int otherLightLevel = playerLocation.getBlock().getLightFromSky();
+
+        // Calculate the total light level
+        int totalLightLevel = Math.max(blockLightLevel, otherLightLevel);
+
+        // Set target temperature based on total light level during day and night
         double targetTemperature = 0;
 
         if (isDay) {
-            switch (blockLightLevel) {
+            switch (totalLightLevel) {
                 case 15:
                 case 14:
                     targetTemperature = 38.0; // High target temperature during the day with bright sunlight
@@ -165,7 +160,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                     break;
             }
         } else {
-            switch (blockLightLevel) {
+            switch (totalLightLevel) {
                 case 15:
                 case 14:
                     targetTemperature = 25.0; // Lower target temperature during the night with bright moonlight
@@ -201,24 +196,36 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     }
 
 
+
+
     private double adjustTemperatureBasedOnSkylight(double skylightLevel, double timeFactor, double skylightFactor, double exponentialFactor) {
         double temperatureChange = 0;
 
         // Adjust temperature based on skylight levels
         if (skylightLevel >= 12 && skylightLevel <= 15) {
-            temperatureChange += (0.01 + (timeFactor * 0.5) + (1.0 - 0.05) * ((skylightFactor - 8.0) / 7.0)) * exponentialFactor;
+            temperatureChange += (0.0001 + (timeFactor * 0.7) + (1.0 - 0.05) * ((skylightFactor - 8.0) / 7.0)) * exponentialFactor;
         } else if (skylightLevel == 11) {
-            temperatureChange += (0.005 + (timeFactor * 0.5) + (1.0 - 0.05) * ((skylightFactor - 8.0) / 3.0)) * exponentialFactor;
+            temperatureChange += (0.0003 + (timeFactor * 0.65) + (1.0 - 0.05) * ((skylightFactor - 8.0) / 3.0)) * exponentialFactor;
         } else if (skylightLevel == 10) {
-            temperatureChange += (0.003 + (timeFactor * 0.5) + (1.0 - 0.05) * ((skylightFactor - 8.0) / 2.0)) * exponentialFactor;
+            temperatureChange += (0.0007 + (timeFactor * 0.63) + (1.0 - 0.05) * ((skylightFactor - 8.0) / 2.0)) * exponentialFactor;
         } else if (skylightLevel == 9) {
-            temperatureChange += (0.002 + (timeFactor * 0.5) + (1.0 - 0.05) * ((skylightFactor - 8.0) / 2.0)) * exponentialFactor;
+            temperatureChange += (0.002 + (timeFactor * 0.59) + (1.0 - 0.05) * ((skylightFactor - 8.0) / 2.0)) * exponentialFactor;
         } else if (skylightLevel == 8) {
-            temperatureChange -= Math.min(0.25, (timeFactor * 0.5) + (8 - skylightFactor) * 0.1) * exponentialFactor;
+            temperatureChange -= Math.min(0.01, (timeFactor * 0.53) + (8 - skylightFactor) * 0.1) * exponentialFactor;
         } else if (skylightLevel == 7) {
-            temperatureChange -= Math.min(0.46, (timeFactor * 0.5) + (8 - skylightFactor) * 0.1) * exponentialFactor;
-        } else if (skylightLevel <= 6) {
-            temperatureChange -= Math.min(0.66, (timeFactor * 0.5) + (8 - skylightFactor) * 0.1) * exponentialFactor;
+            temperatureChange -= Math.min(0.16, (timeFactor * 0.52) + (8 - skylightFactor) * 0.1) * exponentialFactor;
+        } else if (skylightLevel == 6) {
+            temperatureChange -= Math.min(0.24, (timeFactor * 0.48) + (8 - skylightFactor) * 0.1) * exponentialFactor;
+        } else if (skylightLevel == 5) {
+            temperatureChange -= Math.min(0.24, (timeFactor * 0.56) + (8 - skylightFactor) * 0.1) * exponentialFactor;
+        } else if (skylightLevel == 4) {
+            temperatureChange -= Math.min(0.32, (timeFactor * 0.72) + (8 - skylightFactor) * 0.1) * exponentialFactor;
+        } else if (skylightLevel == 3) {
+            temperatureChange -= Math.min(0.44, (timeFactor * 0.79) + (8 - skylightFactor) * 0.1) * exponentialFactor;
+        } else if (skylightLevel == 2) {
+            temperatureChange -= Math.min(0.56, (timeFactor * 0.82) + (8 - skylightFactor) * 0.1) * exponentialFactor;
+        } else if (skylightLevel <= 1) {
+            temperatureChange -= Math.min(0.69, (timeFactor * 0.84) + (8 - skylightFactor) * 0.1) * exponentialFactor;
         }
 
         return temperatureChange;
@@ -324,18 +331,11 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         // Check if the player is currently sprinting
         boolean isSprinting = player.isSprinting();
 
-        // Check if the player is currently walking
-        boolean isWalking = !isSprinting;
-
         // Define activity factor based on sprinting or walking duration
         if (isSprinting) {
             long sprintingDuration = System.currentTimeMillis() - sprintStartTime.getOrDefault(player.getUniqueId(), 0L);
             double sprintingFactor = Math.min(1.0, sprintingDuration / MAX_SPRINT_DURATION);
             physicalActivityFactor += 0.1 * sprintingFactor;
-        } else if (isWalking) {
-            long walkingDuration = System.currentTimeMillis() - walkStartTime.getOrDefault(player.getUniqueId(), 0L);
-            double walkingFactor = Math.min(1.0, walkingDuration / MAX_WALK_DURATION);
-            physicalActivityFactor += 0.05 * walkingFactor;
         }
 
         return physicalActivityFactor;
@@ -358,7 +358,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
 
     private void loadPlayerTemperature(Player player) {
-        File playerFile = new File(getDataFolder() + "/data/", player.getUniqueId().toString() + ".json");
+        File playerFile = new File(getDataFolder() + "/data/", player.getUniqueId() + ".json");
         try {
             if (!playerFile.exists()) {
                 return; // No saved temperature for this player yet
