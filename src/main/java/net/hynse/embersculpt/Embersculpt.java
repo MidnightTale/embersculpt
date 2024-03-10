@@ -114,11 +114,20 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
             // Apply physical activity factor
             temperatureChange += physicalActivityFactor;
+            // Adjust the current temperature towards the target smoothly
             double currentTemperature = getPlayerTemperature(player);
-            double newTemperature = Math.min(MAX_TEMPERATURE, Math.max(MIN_TEMPERATURE, currentTemperature + temperatureChange));
+            double targetTemperature = currentTemperature + temperatureChange;
+            double transitionRate = 0.01; // Define your desired transition rate here
 
-            setPlayerTemperature(player, newTemperature);
-            updateActionBar(player, newTemperature, temperatureChange, skylightFactor, temperatureFactor, biomeTemperature, timeFactor, exponentialFactor, freezingFactor, weatherFactor, physicalActivityFactor, armorInsulationFactor);
+            if (currentTemperature < targetTemperature) {
+                currentTemperature = Math.min(targetTemperature, currentTemperature + transitionRate);
+            } else if (currentTemperature > targetTemperature) {
+                currentTemperature = Math.max(targetTemperature, currentTemperature - transitionRate);
+            }
+
+            setPlayerTemperature(player, currentTemperature);
+            updateActionBar(player, currentTemperature, temperatureChange, skylightFactor, temperatureFactor, biomeTemperature, timeFactor, exponentialFactor, freezingFactor, weatherFactor, physicalActivityFactor, armorInsulationFactor);
+
         }
     }
 
@@ -129,40 +138,58 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         double targetTemperature = 0;
 
         if (isDay) {
-            if (blockLightLevel >= 14) {
-                targetTemperature = 38.0; // High target temperature during the day with bright sunlight
-            } else if (blockLightLevel >= 11 && blockLightLevel < 14) {
-                // Moderate light level during the day
-                if (biomeTemperature < 0.2) {
-                    targetTemperature = 34.0;
-                } else if (biomeTemperature < 0.5) {
-                    targetTemperature = 36.0;
-                }
-            } else if (blockLightLevel >= 8 && blockLightLevel < 11) {
-                // Lower light level during the day
-                if (biomeTemperature < 0.2) {
-                    targetTemperature = 30.0;
-                } else if (biomeTemperature < 0.5) {
-                    targetTemperature = 32.0;
-                }
+            switch (blockLightLevel) {
+                case 15:
+                case 14:
+                    targetTemperature = 38.0; // High target temperature during the day with bright sunlight
+                    break;
+                case 13:
+                case 12:
+                case 11:
+                    // Moderate light level during the day
+                    if (biomeTemperature < 0.2) {
+                        targetTemperature = 34.0;
+                    } else if (biomeTemperature < 0.5) {
+                        targetTemperature = 36.0;
+                    }
+                    break;
+                case 10:
+                case 9:
+                case 8:
+                    // Lower light level during the day
+                    if (biomeTemperature < 0.2) {
+                        targetTemperature = 30.0;
+                    } else if (biomeTemperature < 0.5) {
+                        targetTemperature = 32.0;
+                    }
+                    break;
             }
         } else {
-            if (blockLightLevel >= 14) {
-                targetTemperature = 25.0; // Lower target temperature during the night with bright moonlight
-            } else if (blockLightLevel >= 11 && blockLightLevel < 14) {
-                // Moderate light level during the night
-                if (biomeTemperature < 0.2) {
-                    targetTemperature = 22.0;
-                } else if (biomeTemperature < 0.5) {
-                    targetTemperature = 23.0;
-                }
-            } else if (blockLightLevel >= 8 && blockLightLevel < 11) {
-                // Lower light level during the night
-                if (biomeTemperature < 0.2) {
-                    targetTemperature = 20.0;
-                } else if (biomeTemperature < 0.5) {
-                    targetTemperature = 21.0;
-                }
+            switch (blockLightLevel) {
+                case 15:
+                case 14:
+                    targetTemperature = 25.0; // Lower target temperature during the night with bright moonlight
+                    break;
+                case 13:
+                case 12:
+                case 11:
+                    // Moderate light level during the night
+                    if (biomeTemperature < 0.2) {
+                        targetTemperature = 22.0;
+                    } else if (biomeTemperature < 0.5) {
+                        targetTemperature = 23.0;
+                    }
+                    break;
+                case 10:
+                case 9:
+                case 8:
+                    // Lower light level during the night
+                    if (biomeTemperature < 0.2) {
+                        targetTemperature = 20.0;
+                    } else if (biomeTemperature < 0.5) {
+                        targetTemperature = 21.0;
+                    }
+                    break;
             }
         }
 
@@ -172,6 +199,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
         return temperatureChange;
     }
+
 
     private double adjustTemperatureBasedOnSkylight(double skylightLevel, double timeFactor, double skylightFactor, double exponentialFactor) {
         double temperatureChange = 0;
