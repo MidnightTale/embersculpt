@@ -1,0 +1,4 @@
+name: embersculpt
+version: '${version}'
+main: net.hynse.embersculpt.Embersculpt
+api-version: '1.20'
