@@ -39,7 +39,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
             int skylightLevel = player.getLocation().getBlock().getLightFromSky();
 
-            if (skylightLevel >= 8 && skylightLevel < 15) {
+            if (skylightLevel >= 8 && skylightLevel <= 15) {
                 // Skylight level is high
                 temperatureChange += Math.min(1.0, (15 - skylightLevel) * 0.05); // Increase temperature by max 1, minimum 0.05 per skylight level
             } else if (skylightLevel <= 7) {
