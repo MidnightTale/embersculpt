@@ -37,41 +37,25 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             World world = player.getWorld();
             double temperatureChange = 0;
 
-            if (player.getLocation().getBlock().getLightFromSky() == 15) {
-                // Player is exposed to skylight
-                temperatureChange += TEMPERATURE_CHANGE_RATE;
-            } else {
-                // Player is not exposed to skylight
-                int blocksAbove = countBlocksAbovePlayer(player, scheduler);
-                temperatureChange -= TEMPERATURE_CHANGE_RATE * (blocksAbove / (double) MAX_BLOCKS_ABOVE_PLAYER);
+            int skylightLevel = player.getLocation().getBlock().getLightFromSky();
+
+            if (skylightLevel >= 8 && skylightLevel < 15) {
+                // Skylight level is high
+                temperatureChange += Math.min(1.0, (15 - skylightLevel) * 0.05); // Increase temperature by max 1, minimum 0.05 per skylight level
+            } else if (skylightLevel <= 7) {
+                // Skylight level is low or zero
+                // No change in temperature
             }
 
             double currentTemperature = getPlayerTemperature(player);
             double newTemperature = Math.min(MAX_TEMPERATURE, Math.max(MIN_TEMPERATURE, currentTemperature + temperatureChange));
 
             setPlayerTemperature(player, newTemperature);
-            updateActionBar(player, newTemperature, temperatureChange, countBlocksAbovePlayer(player, scheduler), player.getLocation().getBlock().getLightFromSky());
+            updateActionBar(player, newTemperature, temperatureChange, skylightLevel);
         }
     }
 
-    private int countBlocksAbovePlayer(Player player, WrappedScheduler scheduler) {
-        World world = player.getWorld();
-        AtomicInteger blocksAbove = new AtomicInteger(0);
 
-        Location playerLocation = player.getLocation();
-
-        scheduler.runTaskAtLocation(playerLocation, () -> {
-            for (int y = playerLocation.getBlockY() + 1; y <= world.getMaxHeight(); y++) {
-                if (!world.getBlockAt(playerLocation.getBlockX(), y, playerLocation.getBlockZ()).isEmpty()) {
-                    blocksAbove.incrementAndGet();
-                } else {
-                    break;
-                }
-            }
-        });
-
-        return blocksAbove.get();
-    }
 
     private double getPlayerTemperature(Player player) {
         // Implement your method to retrieve player temperature from storage
@@ -84,12 +68,12 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         // Example: temperatureStorage.put(player.getUniqueId(), temperature);
     }
 
-    private void updateActionBar(Player player, double temperature, double temperatureChange, int blocksAbove, int skylightLevel) {
+    private void updateActionBar(Player player, double temperature, double temperatureChange, int skylightLevel) {
         int roundedTemperature = (int) Math.round(temperature);
         String actionBarMessage = ChatColor.GOLD + "Temperature: " + ChatColor.RED + roundedTemperature
                 + ChatColor.YELLOW + " | Rate Change: " + temperatureChange
-                + ChatColor.YELLOW + " | Blocks Above: " + blocksAbove
                 + ChatColor.YELLOW + " | Skylight Level: " + skylightLevel;
         player.sendActionBar(actionBarMessage);
     }
+
 }
