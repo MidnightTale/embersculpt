@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+
 public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listener {
 
     private static final int MAX_TEMPERATURE = 100;
@@ -62,31 +63,48 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             int skylightLevel = player.getLocation().getBlock().getLightFromSky();
             double biomeTemperature = player.getLocation().getBlock().getTemperature();
 
+            // Determine if it's day or night based on the time in the world
+            boolean isDay = world.getTime() < 13000;
+
             temperatureChange += getBiomeTemperatureChange(biomeTemperature);
 
             if (skylightLevel >= 8 && skylightLevel <= 15) {
+                // Adjust temperature based on day or night
                 double temperatureFactor = getPlayerTemperature(player) / MAX_TEMPERATURE;
                 double exponentialFactor = Math.exp(-5 * temperatureFactor);
-                temperatureChange += (0.05 + (1.0 - 0.05) * ((skylightLevel - 8.0) / 7.0)) * exponentialFactor;
-                updateActionBar(player, getPlayerTemperature(player), temperatureChange, skylightLevel, temperatureFactor, biomeTemperature);
+                double timeFactor = isDay ? 1.0 : 0.5; // Adjust as needed
+                temperatureChange += (0.05 + (timeFactor * 0.5) + (1.0 - 0.05) * ((skylightLevel - 8.0) / 7.0)) * exponentialFactor;
+                updateActionBar(player, getPlayerTemperature(player), temperatureChange, skylightLevel, temperatureFactor, biomeTemperature, timeFactor);
             } else if (skylightLevel == 8) {
-                temperatureChange -= Math.min(0.3, (8 - skylightLevel) * 0.1);
+                // Adjust temperature based on day or night
+                double temperatureFactor = getPlayerTemperature(player) / MAX_TEMPERATURE;
+                double exponentialFactor = Math.exp(-5 * temperatureFactor);
+                double timeFactor = isDay ? 1.0 : 0.5; // Adjust as needed
+                temperatureChange -= Math.min(0.3, (timeFactor * 0.5) + (8 - skylightLevel) * 0.1);
                 if (getPlayerTemperature(player) + temperatureChange < 0) {
                     temperatureChange = -getPlayerTemperature(player);
                 }
-                updateActionBar(player, getPlayerTemperature(player), temperatureChange, skylightLevel, 0.0, biomeTemperature);
+                updateActionBar(player, getPlayerTemperature(player), temperatureChange, skylightLevel, temperatureFactor, biomeTemperature, timeFactor);
             } else if (skylightLevel == 7) {
-                temperatureChange -= Math.min(0.6, (8 - skylightLevel) * 0.1);
+                // Adjust temperature based on day or night
+                double temperatureFactor = getPlayerTemperature(player) / MAX_TEMPERATURE;
+                double exponentialFactor = Math.exp(-5 * temperatureFactor);
+                double timeFactor = isDay ? 1.0 : 0.5; // Adjust as needed
+                temperatureChange -= Math.min(0.6, (timeFactor * 0.5) + (8 - skylightLevel) * 0.1);
                 if (getPlayerTemperature(player) + temperatureChange < 0) {
                     temperatureChange = -getPlayerTemperature(player);
                 }
-                updateActionBar(player, getPlayerTemperature(player), temperatureChange, skylightLevel, 0.0, biomeTemperature);
+                updateActionBar(player, getPlayerTemperature(player), temperatureChange, skylightLevel, temperatureFactor, biomeTemperature, timeFactor);
             } else if (skylightLevel < 6) {
-                temperatureChange -= Math.min(0.9, (8 - skylightLevel) * 0.1);
+                // Adjust temperature based on day or night
+                double temperatureFactor = getPlayerTemperature(player) / MAX_TEMPERATURE;
+                double exponentialFactor = Math.exp(-5 * temperatureFactor);
+                double timeFactor = isDay ? 1.0 : 0.5; // Adjust as needed
+                temperatureChange -= Math.min(0.9, (timeFactor * 0.5) + (8 - skylightLevel) * 0.1);
                 if (getPlayerTemperature(player) + temperatureChange < 0) {
                     temperatureChange = -getPlayerTemperature(player);
                 }
-                updateActionBar(player, getPlayerTemperature(player), temperatureChange, skylightLevel, 0.0, biomeTemperature);
+                updateActionBar(player, getPlayerTemperature(player), temperatureChange, skylightLevel, temperatureFactor, biomeTemperature, timeFactor);
             }
 
             double currentTemperature = getPlayerTemperature(player);
@@ -97,8 +115,16 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     }
 
     private double getBiomeTemperatureChange(double biomeTemperature) {
-        // Your existing biome temperature change logic...
-        return 0.0; // Default: no biome-specific temperature change
+        // Implement your logic for biome-based temperature changes here
+        // You can return different values based on the biome temperature
+        // For example, colder biomes return negative values, warmer biomes return positive values
+        if (biomeTemperature < 0.2) {
+            return -0.5; // Example: colder biome
+        } else if (biomeTemperature > 0.8) {
+            return 0.5; // Example: warmer biome
+        } else {
+            return 0; // Default: no biome-specific temperature change
+        }
     }
 
     private void loadPlayerTemperature(Player player) {
@@ -134,17 +160,19 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         temperatureStorage.put(player.getUniqueId(), temperature);
     }
 
-    private void updateActionBar(Player player, double temperature, double temperatureChange, int skylightLevel, double temperatureFactor, double biomeTemperature) {
+    private void updateActionBar(Player player, double temperature, double temperatureChange, int skylightLevel, double temperatureFactor, double biomeTemperature, double timeFactor) {
         int roundedTemperature = (int) Math.round(temperature);
         String formattedTemperatureChange = String.format("%.2f", temperatureChange);
         String formattedTemperatureFactor = String.format("%.2f", temperatureFactor);
         String formattedBiomeTemperature = String.format("%.2f", biomeTemperature);
+        String formattedTimeFactor = String.format("%.2f", timeFactor);
 
         String actionBarMessage = ChatColor.GOLD + "Temperature: " + ChatColor.RED + roundedTemperature
                 + ChatColor.YELLOW + " | Rate: " + formattedTemperatureChange
-                + ChatColor.YELLOW + " | SLevel: " + skylightLevel
-                + ChatColor.BLUE + " | Factor: " + formattedTemperatureFactor
-                + ChatColor.DARK_GREEN + " | Biome: " + formattedBiomeTemperature;
+                + ChatColor.YELLOW + " | S-Level: " + skylightLevel
+                + ChatColor.BLUE + " | H-Factor: " + formattedTemperatureFactor
+                + ChatColor.DARK_GREEN + " | Biome: " + formattedBiomeTemperature
+                + ChatColor.DARK_PURPLE + " | T-Factor: " + formattedTimeFactor;
         player.sendActionBar(actionBarMessage);
     }
 }
