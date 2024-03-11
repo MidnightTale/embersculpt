@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listener {
-    public HashMap<Player, Double> bodyTemperatureMap;
     public static Embersculpt instance;
     public static PlayerDataManager playerDataManager;
     public static ActionBar actionBar;
@@ -34,8 +33,8 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     @Override
     public void onEnable() {
         instance = this;
-        bodyTemperatureMap = new HashMap<>();
-        playerDataManager = new PlayerDataManager(this);
+        playerDataManager = new PlayerDataManager(instance);
+        playerDataManager.bodyTemperatureMap = new HashMap<>();
         actionBar = new ActionBar();
         blockTemperature = new BlockTemperature();
         cooldown = new Cooldown();
@@ -44,7 +43,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         multiplier = new Multiplier();
         skyLight = new SkyLight();
         util = new Util();
-
+        getServer().getPluginManager().registerEvents(new EventListener(), this);
         new WrappedRunnable() {
             @Override
             public void run() {
@@ -65,10 +64,10 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
     @Override
     public void onDisable() {
-        for (Player player : bodyTemperatureMap.keySet()) {
+        for (Player player : playerDataManager.bodyTemperatureMap.keySet()) {
             playerDataManager.savePlayerTemperature(player);
         }
-        bodyTemperatureMap.clear();
+        playerDataManager.bodyTemperatureMap.clear();
     }
 
     private void updateBodyTemperature() {
@@ -96,7 +95,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                     double heatSourceTemperatureChange = blockTemperature.calculateTemperatureHeatSources(player);
 
                     // Combine all factors to update player's temperature
-                    double currentTemperature = bodyTemperatureMap.getOrDefault(player, 0.0);
+                    double currentTemperature = playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0);
                     currentTemperature += skylightTemperatureChange;
                     currentTemperature += physicalActivityFactor;
                     currentTemperature += heatSourceTemperatureChange;
@@ -109,7 +108,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                     currentTemperature = Math.max(MIN_TEMPERATURE, Math.min(MAX_TEMPERATURE, currentTemperature));
 
                     // Update the player's body temperature
-                    bodyTemperatureMap.put(player, currentTemperature);
+                    playerDataManager.bodyTemperatureMap.put(player, currentTemperature);
 
                     // Update the action bar for the player
                     actionBar.updateActionBar(player);

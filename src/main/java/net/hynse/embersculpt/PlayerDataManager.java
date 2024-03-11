@@ -6,8 +6,10 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 
 public class PlayerDataManager {
+    public HashMap<Player, Double> bodyTemperatureMap;
     private final Embersculpt plugin;
 
     public PlayerDataManager(Embersculpt plugin) {
@@ -21,6 +23,7 @@ public class PlayerDataManager {
         double temperature = Embersculpt.util.getBodyTemperature(player);
 
         config.set("temperature", temperature);
+        Embersculpt.instance.getLogger().info("Saved temperature for player " + player.getName() + ": " + temperature);
 
         try {
             config.save(playerFile);
@@ -36,6 +39,8 @@ public class PlayerDataManager {
         if (playerFile.exists() && config.contains("temperature")) {
             return config.getDouble("temperature");
         }
+        Embersculpt.instance.getLogger().info("Loaded temperature for player " + player.getName() + ": " + config);
+
 
         return 0.0; // Default temperature
     }

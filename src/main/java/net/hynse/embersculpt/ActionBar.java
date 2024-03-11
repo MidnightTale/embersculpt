@@ -1,61 +1,60 @@
 package net.hynse.embersculpt;
 
-import me.nahu.scheduler.wrapper.runnable.WrappedRunnable;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.block.Biome;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 public class ActionBar {
+
     public void updateActionBar(Player player) {
-        double temperature = Embersculpt.instance.bodyTemperatureMap.getOrDefault(player, 0.0);
+        double temperature = Embersculpt.playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0);
+        World world = Bukkit.getWorlds().get(0);
 
-        // Get skylight level at player's location
-        int skylightLevel = player.getLocation().getBlock().getLightFromSky();
+        long dayCount = world.getFullTime() / 24000;
+        long time = world.getTime();
+        boolean isStormy = world.hasStorm();
 
-        // Format the temperature and temperatureChangeRate to display four decimal places
-        String formattedTemperature = String.format("%.2f", temperature);
-        String formattedChangeRate = String.format("%.2f", Embersculpt.skyLight.calculateTemperatureSkyLightChange(player, skylightLevel));
+        long hours = (time / 1000) % 24;
+        long minutes = (time % 1000) * 60 / 1000;
 
-        // Get biome information asynchronously
-        Location location = player.getLocation();
-        long time = player.getWorld().getTime();  // Add this line to get the current time
+        boolean isDay = time >= 0 && time < 12000;
+        String timeicon = (hours >= 6 && hours < 18) ? "\u2600" : "\u263D";
+        String thunderEmoji = "\u26C8"; // Thunder emoji
+        String rainEmoji = "\uD83C\uDF27"; // Rain emoji
+        String cloudEmoji = "\u2601"; // Cloud emoji
+        String weathericon = isStormy ? thunderEmoji : (world.isClearWeather() ? cloudEmoji : rainEmoji);
+        String timeString = String.format("%02d:%02d", hours, minutes);
+        //String line2color = String.valueOf(net.md_5.bungee.api.ChatColor.of("#ffffff"));
 
-        new WrappedRunnable() {
-            @Override
-            public void run() {
-                Biome biome = location.getBlock().getBiome();
-                double biomeTemperature = location.getBlock().getTemperature();
-                boolean isDay = time >= 0 && time < 12000;
-                ItemStack[] playerArmor = player.getInventory().getArmorContents();
+        // Determine the symbols for temperature change
+        String temperatureSymbol = temperatureChangeSymbol(temperature, isDay);
 
-                // Get time-specific multipliers
-                double daytimeMultiplier = Embersculpt.multiplier.getDaytimeMultiplier(time, isDay, playerArmor);
-                double nighttimeMultiplier = Embersculpt.multiplier.getNighttimeDeMultiplier(time, isDay, playerArmor);
+        // Get the appropriate multiplier based on the time of day
+        Multiplier multiplier = new Multiplier();
+        double multiplierValue = isDay
+                ? multiplier.getDaytimeMultiplier(time, true, player.getInventory().getArmorContents())
+                : multiplier.getNighttimeDeMultiplier(time, false, player.getInventory().getArmorContents());
+
+        // Construct the action bar message
+        String temperatureString = String.format("%.2f", temperature);
+        String multiplierValueString = String.format("%.2f", multiplierValue);
+        String actionBarMessage = "" + ChatColor.YELLOW + temperatureString + " " + temperatureSymbol +
+                ChatColor.GRAY + "x" + multiplierValueString +
+                ChatColor.GRAY + " | " + timeicon + " " + ChatColor.YELLOW + dayCount+ ChatColor.GRAY + " (" + ChatColor.YELLOW + timeString + ChatColor.GRAY + ")";
 
 
-                // Calculate biome-specific factors
-                double freezingFactor = Embersculpt.factor.getFreezingFactor(biomeTemperature, time < 12000);
-                double heatingFactor = Embersculpt.factor.getHeatFactor(biomeTemperature, time >= 12000);
+        // Send action bar message to the player
+        player.sendActionBar(actionBarMessage);
+    }
 
-                // Format biome information
-                String biomeInfo = ChatColor.GRAY + " | Bi:" + ChatColor.YELLOW + biome.name() +
-                        ChatColor.GRAY + " (" + ChatColor.AQUA + String.format("%.2f", biomeTemperature) + ChatColor.GRAY + ")";
-
-                // Construct the action bar message
-                String actionBarMessage = ChatColor.GRAY + "T:" + ChatColor.YELLOW + formattedTemperature +
-                        ChatColor.GRAY + " | SL:" + ChatColor.AQUA + skylightLevel +
-                        ChatColor.GRAY + " | R:" + ChatColor.GREEN + formattedChangeRate +
-                        ChatColor.GRAY + " | HF:" + ChatColor.RED + String.format("%.2f", heatingFactor) +
-                        ChatColor.GRAY + " | FF:" + ChatColor.BLUE + String.format("%.2f", freezingFactor) +
-                        ChatColor.GRAY + " | Day x" + ChatColor.GOLD + String.format("%.2f", daytimeMultiplier) +
-                        ChatColor.GRAY + " | Night x:" + ChatColor.DARK_PURPLE + String.format("%.2f", nighttimeMultiplier) +
-                        biomeInfo;
-
-                // Send action bar message to the player
-                player.sendActionBar(actionBarMessage);
-            }
-        }.runTaskAtLocation(Embersculpt.instance, location);
+    private String temperatureChangeSymbol(double temperature, boolean isDay) {
+        if (temperature > 0) {
+            return isDay ? ChatColor.RED + "▲" : ChatColor.GREEN + "▼";
+        } else if (temperature < 0) {
+            return isDay ? ChatColor.GREEN + "▼" : ChatColor.RED + "▲";
+        } else {
+            return "-";
+        }
     }
 }

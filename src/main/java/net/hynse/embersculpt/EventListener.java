@@ -24,7 +24,7 @@ public class EventListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         Embersculpt.playerDataManager.savePlayerTemperature(player);
-        Embersculpt.instance.bodyTemperatureMap.remove(player);
+        Embersculpt.playerDataManager.bodyTemperatureMap.remove(player);
     }
 
 
@@ -32,7 +32,7 @@ public class EventListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         // Reset temperature data for the dead player
         Player player = event.getEntity();
-        Embersculpt.instance.bodyTemperatureMap.remove(player);
+        Embersculpt.playerDataManager.bodyTemperatureMap.remove(player);
         player.clearActivePotionEffects();
     }
     @EventHandler

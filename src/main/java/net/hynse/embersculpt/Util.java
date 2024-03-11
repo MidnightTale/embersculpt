@@ -7,11 +7,11 @@ import org.bukkit.inventory.ItemStack;
 
 public class Util {
     public double getBodyTemperature(Player player) {
-        return Embersculpt.instance.bodyTemperatureMap.getOrDefault(player, 0.0);
+        return Embersculpt.playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0);
     }
 
     public void setBodyTemperature(Player player, double temperature) {
-        Embersculpt.instance.bodyTemperatureMap.put(player, temperature);
+        Embersculpt.playerDataManager.bodyTemperatureMap.put(player, temperature);
     }
     public double calculateArmorImpact(ItemStack[] armorContents) {
         double armorImpact = 0.0;

@@ -88,7 +88,7 @@ public class SkyLight {
             double adjustedChangeRate = changeRate + biomeTemperatureChange;
 
             // Introduce stabilizing factor to bring temperature back to a central value
-            double stabilizingFactor = (Embersculpt.instance.bodyTemperatureMap.getOrDefault(player, 0.0) - 18.0) * 0.01;
+            double stabilizingFactor = (Embersculpt.playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0) - 18.0) * 0.01;
             adjustedChangeRate -= stabilizingFactor;
 
             // Adjust the temperature to not go below 37 during the day in the shadow of a hot biome
@@ -105,9 +105,9 @@ public class SkyLight {
             }
 
             return adjustedChangeRate;
-        } else if (isShadowDuringNightInHotBiome && Embersculpt.instance.bodyTemperatureMap.getOrDefault(player, 0.0) > 24) {
+        } else if (isShadowDuringNightInHotBiome && Embersculpt.playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0) > 24) {
             // If in the shadow during the night and body temperature is greater than 24, slowly decrease temperature
-            return Math.max(-1.0, (24 - Embersculpt.instance.bodyTemperatureMap.getOrDefault(player, 0.0)));
+            return Math.max(-1.0, (24 - Embersculpt.playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0)));
         } else {
             // If skylight level is above the maximum or not in the shadow, no additional change
             return 0.0;

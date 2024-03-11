@@ -10,7 +10,7 @@ public class BlockTemperature {
     public void BlockTemperature(Player player) {
         Block block = player.getLocation().getBlock();
 
-        double currentTemperature = Embersculpt.instance.bodyTemperatureMap.getOrDefault(player, 0.0);
+        double currentTemperature = Embersculpt.playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0);
 
         if (block.getType() == Material.WATER || block.getType() == Material.WATER_CAULDRON) {
             // Decrease the player's temperature until it reaches 0
@@ -35,7 +35,7 @@ public class BlockTemperature {
         }
 
         // Update the player's body temperature
-        Embersculpt.instance.bodyTemperatureMap.put(player, Math.min(100.0, Math.max(-100.0, currentTemperature)));
+        Embersculpt.playerDataManager.bodyTemperatureMap.put(player, Math.min(100.0, Math.max(-100.0, currentTemperature)));
     }
     public double calculateTemperatureHeatSources(Player player) {
         final double[] heatSourceTemperatureChange = {0.0};
