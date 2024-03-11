@@ -32,7 +32,6 @@ repositories {
 dependencies {
     compileOnly "dev.folia:folia-api:1.20.1-R0.1-SNAPSHOT"
     compileOnly 'me.clip:placeholderapi:2.11.5'
-    implementation 'org.mongodb:mongodb-driver-sync:5.0.0'
     implementation 'com.github.NahuLD:folia-scheduler-wrapper:v0.0.2'
     implementation "net.kyori:adventure-api:4.16.0"
 }
@@ -67,8 +66,7 @@ processResources {
 // Configure the shadowJar task
 shadowJar {
     // Define the desired JAR file name format
-    relocate 'org.mongodb', 'net.hynse.lib.mongodb'
-    relocate 'com.github.NahuLD', 'net.hynse.lib.scheduler-wrapper'
+    relocate 'com.github.NahuLD', 'net.hynse.lib2.scheduler-wrapper'
     archiveFileName.set("${rootProject.name}-${version}.jar")
 }
 

@@ -18,7 +18,7 @@ public class PlayerDataManager {
         File playerFile = getPlayerFile(player);
         FileConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
 
-        double temperature = plugin.getBodyTemperature(player);
+        double temperature = Embersculpt.util.getBodyTemperature(player);
 
         config.set("temperature", temperature);
 
