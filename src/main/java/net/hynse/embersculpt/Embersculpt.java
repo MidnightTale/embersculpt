@@ -25,7 +25,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     private static final double MIN_TEMPERATURE = -100.0;
     private static final long MAX_SPRINT_DURATION = 180000; // Maximum sprinting duration in milliseconds (e.g., 60 seconds)
     private int timeadd = 0;  // Add this line to declare 'timeadd'
-    private int bodyTemperatureAddition = 30;  // Add this line to declare 'bodyTemperatureAddition'
+    private int bodyTemperatureAddition = 6;  // Add this line to declare 'bodyTemperatureAddition'
     private Map<UUID, Long> sprintStartTime = new HashMap<>();
     private Map<UUID, Long> walkStartTime = new HashMap<>();
 
@@ -40,7 +40,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             public void run() {
                 updateBodyTemperature();
             }
-        }.runTaskTimer(this, 1, 20);
+        }.runTaskTimer(this, 1, 5);
         new WrappedRunnable() {
             @Override
             public void run() {
@@ -48,7 +48,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                     applyBodyTemperatureEffects(player);
                 }
             }
-        }.runTaskTimer(this, 1, 20);
+        }.runTaskTimer(this, 1, 100);
         getServer().getPluginManager().registerEvents(this, this);
     }
 
@@ -100,49 +100,51 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                     // Normal Conditions (No immediate effects)
                     // Characters feel comfortable with no adverse effects.
                     // No additional effects need to be applied.
-                } else if (bodyTemperature > 75 && bodyTemperature <= 85) {
-                    applyPotionEffect(player, PotionEffectType.SPEED, 30, 0);
-                } else if (bodyTemperature > 85 && bodyTemperature <= 95) {
-                    applyPotionEffect(player, PotionEffectType.WEAKNESS, 30, 0);
-                } else if (bodyTemperature > 95 && bodyTemperature < 100) {
-                    applyPotionEffect(player, PotionEffectType.CONFUSION, 20 * 10, 0);
-                    applyPotionEffect(player, PotionEffectType.SPEED, 30, 1);
+                } else if (bodyTemperature > 75) {
+                    applyPotionEffect(player, PotionEffectType.SPEED, 120, 0);
+                } else if (bodyTemperature > 85) {
+                    applyPotionEffect(player, PotionEffectType.WEAKNESS, 120, 0);
+                } else if (bodyTemperature > 95) {
+                    applyPotionEffect(player, PotionEffectType.CONFUSION, 120 * 10, 0);
+                    applyPotionEffect(player, PotionEffectType.SPEED, 120, 1);
                 } else if (bodyTemperature >= 100) {
-                    applyPotionEffect(player, PotionEffectType.CONFUSION, 20 * 10, 3);
+                    applyPotionEffect(player, PotionEffectType.CONFUSION, 120 * 10, 3);
                     timeadd++;
 
                     if (timeadd >= bodyTemperatureAddition) {
                         player.setFireTicks(20 * 10);
-                        applyPotionEffect(player, PotionEffectType.BLINDNESS, 30, 1);
-                        applyPotionEffect(player, PotionEffectType.WEAKNESS, 30, 0);
-                        applyPotionEffect(player, PotionEffectType.SPEED, 30, 3);
-                        applyPotionEffect(player, PotionEffectType.WITHER, 30, 2);
+                        applyPotionEffect(player, PotionEffectType.BLINDNESS, 120, 1);
+                        applyPotionEffect(player, PotionEffectType.WEAKNESS, 120, 0);
+                        applyPotionEffect(player, PotionEffectType.SPEED, 120, 3);
+                        applyPotionEffect(player, PotionEffectType.WITHER, 120, 2);
+                        timeadd = 0;
                     }
                 } else if (bodyTemperature >= 0 && bodyTemperature <= 25) {
                     // Normal Conditions (No immediate effects)
                     // Characters are comfortable without experiencing cold-related effects.
                     // No additional effects need to be applied.
-                } else if (bodyTemperature > -20 && bodyTemperature <= 0) {
-                    applyPotionEffect(player, PotionEffectType.SLOW, 30, 0);
-                } else if (bodyTemperature > -40 && bodyTemperature <= -20) {
-                    applyPotionEffect(player, PotionEffectType.SLOW_DIGGING, 30, 0);
-                } else if (bodyTemperature > -60 && bodyTemperature <= -40) {
-                    applyPotionEffect(player, PotionEffectType.DARKNESS, 30, 0);
-                } else if (bodyTemperature > -80 && bodyTemperature <= -60) {
-                    applyPotionEffect(player, PotionEffectType.CONFUSION, 20 * 10, 0);
-                    applyPotionEffect(player, PotionEffectType.SLOW, 30, 1);
-                } else if (bodyTemperature > -100 && bodyTemperature <= -80) {
-                    player.setFreezeTicks(20 * 10);
+                } else if (bodyTemperature > -20) {
+                    applyPotionEffect(player, PotionEffectType.SLOW, 120, 0);
+                } else if (bodyTemperature > -40 ) {
+                    applyPotionEffect(player, PotionEffectType.SLOW_DIGGING, 120, 0);
+                } else if (bodyTemperature > -60) {
+                    applyPotionEffect(player, PotionEffectType.DARKNESS, 120, 0);
+                } else if (bodyTemperature > -80) {
+                    applyPotionEffect(player, PotionEffectType.CONFUSION, 120, 0);
+                    applyPotionEffect(player, PotionEffectType.SLOW, 120, 1);
+                } else if (bodyTemperature > -100) {
+                    player.setFreezeTicks(20 * 30);
                 } else if (bodyTemperature == -100) {
                     timeadd++;
-                    applyPotionEffect(player, PotionEffectType.SLOW, 30, 1);
+                    applyPotionEffect(player, PotionEffectType.SLOW, 120, 1);
 
                     if (timeadd >= bodyTemperatureAddition) {
                         player.setFireTicks(20 * 10);
-                        applyPotionEffect(player, PotionEffectType.SLOW_DIGGING, 30, 1);
-                        applyPotionEffect(player, PotionEffectType.WITHER, 20 * 10, 1);
-                        applyPotionEffect(player, PotionEffectType.CONFUSION, 20 * 10, 0);
-                        applyPotionEffect(player, PotionEffectType.SLOW, 30, 2);
+                        applyPotionEffect(player, PotionEffectType.SLOW_DIGGING, 120, 1);
+                        applyPotionEffect(player, PotionEffectType.WITHER, 120, 1);
+                        applyPotionEffect(player, PotionEffectType.CONFUSION, 120, 0);
+                        applyPotionEffect(player, PotionEffectType.SLOW, 120, 2);
+                        timeadd = 0;
                     }
                 }
             }
@@ -580,8 +582,8 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     }
     private void reduceTemperaturenPotionSplash(Player player) {
         // Apply temperature reduction for 30 seconds at a rate of 3 per second
-        int durationInSeconds = 3;
-        double reductionRate = 12;
+        int durationInSeconds = 5;
+        double reductionRate = 5;
 
         new WrappedRunnable() {
             int secondsRemaining = durationInSeconds;
@@ -614,7 +616,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     private void reduceTemperatureOnLingeringCloud(Player player) {
         // Apply temperature reduction for 30 seconds at a rate of 3 per second
         int durationInSeconds = 30;
-        double reductionRate = 1;
+        double reductionRate = 0.3;
 
         new WrappedRunnable() {
             int secondsRemaining = durationInSeconds;
@@ -647,7 +649,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     private void reduceTemperatureOnDrink(Player player) {
         // Apply temperature reduction for 30 seconds at a rate of 3 per second
         int durationInSeconds = 128;
-        double reductionRate = 1.6;
+        double reductionRate = 1.2;
 
         new WrappedRunnable() {
             int secondsRemaining = durationInSeconds;
@@ -662,7 +664,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
                 // Reduce the player's body temperature
                 double currentTemperature = getBodyTemperature(player);
-                currentTemperature = Math.max(-30.0, currentTemperature - reductionRate);
+                currentTemperature = Math.max(-100.0, currentTemperature - reductionRate);
 
                 // Update the player's body temperature
                 setBodyTemperature(player, currentTemperature);
@@ -835,9 +837,9 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
         if (!isDay) {
             if (biomeTemperature <= -0.6) {
-                factor = Math.pow(Math.abs(biomeTemperature), 5.0) * 12.22; // Adjust the factor based on your preference
+                factor = Math.pow(Math.abs(biomeTemperature), 5.0) * 1.22; // Adjust the factor based on your preference
             } else if (biomeTemperature <= 0.247) {
-                factor = Math.pow(Math.abs(biomeTemperature), 3.0) * 16.61; // Adjust the factor based on your preference
+                factor = Math.pow(Math.abs(biomeTemperature), 3.0) * 4.61; // Adjust the factor based on your preference
             }
         }
 
@@ -850,7 +852,8 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         }
 
         // Introduce non-linear function to make it harder to go up and down near temperature limits
-        factor *= Math.exp(-Math.pow((Math.abs(biomeTemperature) - 10.0) / 5.0, 2));
+        double decay = 1.0 / (1.0 + Math.exp(-((Math.abs(biomeTemperature) - 10.0) / 5.0)));
+        factor *= decay;
 
         return factor;
     }
