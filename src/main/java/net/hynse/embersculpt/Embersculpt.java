@@ -5,21 +5,32 @@ import me.nahu.scheduler.wrapper.runnable.WrappedRunnable;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerToggleSprintEvent;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.bukkit.Material.*;
 
 public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listener {
-    private HashMap<Player, Double> bodyTemperatureMap;
+    private HashMap<UUID, Double> bodyTemperatureMap;
     private PlayerDataManager playerDataManager;
     private static final double MAX_TEMPERATURE = 100.0;
     private static final double MIN_TEMPERATURE = -100.0;
+    private static final long MAX_SPRINT_DURATION = 180000; // Maximum sprinting duration in milliseconds (e.g., 60 seconds)
+    private Map<UUID, Long> sprintStartTime = new HashMap<>();
+    private Map<UUID, Long> walkStartTime = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -37,22 +48,22 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
     @Override
     public void onDisable() {
-        for (Player player : bodyTemperatureMap.keySet()) {
-            playerDataManager.savePlayerTemperature(player);
+        for (UUID playerId : bodyTemperatureMap.keySet()) {
+            playerDataManager.savePlayerTemperature(playerId);
         }
         bodyTemperatureMap.clear();
     }
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        double temperature = playerDataManager.loadPlayerTemperature(player);
-        setBodyTemperature(player, temperature);
+        double temperature = playerDataManager.loadPlayerTemperature(player.getUniqueId());
+        setBodyTemperature(player.getUniqueId(), temperature);
         updateActionBar(player);
     }
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        playerDataManager.savePlayerTemperature(player);
+        playerDataManager.savePlayerTemperature(player.getUniqueId());
         bodyTemperatureMap.remove(player);
     }
 
@@ -63,12 +74,13 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         Player player = event.getEntity();
         bodyTemperatureMap.remove(player);
     }
-    public double getBodyTemperature(Player player) {
-        return bodyTemperatureMap.getOrDefault(player, 0.0);
+    public double getBodyTemperature(UUID playerId) {
+        return bodyTemperatureMap.getOrDefault(playerId, 0.0);
     }
 
-    public void setBodyTemperature(Player player, double temperature) {
-        bodyTemperatureMap.put(player, temperature);
+
+    public void setBodyTemperature(UUID playerId, double temperature) {
+        bodyTemperatureMap.put(playerId, temperature);
     }
 
 
@@ -213,15 +225,29 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             if (player.isDead()) {
                 continue; // Skip updating temperature for dead players
             }
+
             // Get skylight level at player's location
             int skylightLevel = player.getLocation().getBlock().getLightFromSky();
 
             // Calculate temperature changes based on skylight level and biome factor
             double skylightTemperatureChange = calculateTemperatureSkyLightChange(player, skylightLevel);
 
-            // Update player's temperature
+            // Get insulation value based on the player's armor
+            double insulationValue = 0.0;
+            for (ItemStack armorPiece : player.getInventory().getArmorContents()) {
+                if (armorPiece != null && armorPiece.getType() != Material.AIR) {
+                    insulationValue += getInsulationValue(armorPiece.getType());
+                }
+            }
+
+            // Get physical activity factor based on player's sprinting
+            double physicalActivityFactor = getPhysicalActivityFactor(player);
+
+            // Combine all factors to update player's temperature
             double currentTemperature = bodyTemperatureMap.getOrDefault(player, 0.0);
             currentTemperature += skylightTemperatureChange;
+            currentTemperature -= insulationValue;
+            currentTemperature += physicalActivityFactor;
 
             // Ensure the temperature stays within the specified range
             double stabilizingFactor = calculateStabilizingFactor(currentTemperature);
@@ -230,11 +256,12 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             // Ensure the temperature stays within the specified range
             currentTemperature = Math.max(MIN_TEMPERATURE, Math.min(MAX_TEMPERATURE, currentTemperature));
 
-            bodyTemperatureMap.put(player, currentTemperature);
+            bodyTemperatureMap.put(player.getUniqueId(), currentTemperature);
 
             updateActionBar(player);
         }
     }
+
 
     private double calculateStabilizingFactor(double currentTemperature) {
         // Calculate a stabilizing factor that decreases as the temperature approaches its lower limit
@@ -265,7 +292,69 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         return stabilizingFactor;
     }
 
+    private double getInsulationValue(Material material) {
+        // Define insulation values for different armor materials
+        switch (material) {
+            case LEATHER_HELMET:
+            case LEATHER_CHESTPLATE:
+            case LEATHER_LEGGINGS:
+            case LEATHER_BOOTS:
+                return 0.1;
+            case IRON_HELMET:
+            case IRON_CHESTPLATE:
+            case IRON_LEGGINGS:
+            case IRON_BOOTS:
+                return 0.2;
+            case GOLDEN_HELMET:
+            case GOLDEN_CHESTPLATE:
+            case GOLDEN_LEGGINGS:
+            case GOLDEN_BOOTS:
+                return 0.15;
+            case DIAMOND_HELMET:
+            case DIAMOND_CHESTPLATE:
+            case DIAMOND_LEGGINGS:
+            case DIAMOND_BOOTS:
+                return 0.44;
+            case NETHERITE_HELMET:
+            case NETHERITE_CHESTPLATE:
+            case NETHERITE_LEGGINGS:
+            case NETHERITE_BOOTS:
+                return 0.77;
+            default:
+                return 0.0;
+        }
+    }
 
+    private double getPhysicalActivityFactor(Player player) {
+        double physicalActivityFactor = 0.0;
+
+        // Check if the player is currently sprinting
+        boolean isSprinting = player.isSprinting();
+
+        // Define activity factor based on sprinting or walking duration
+        if (isSprinting) {
+            long sprintingDuration = System.currentTimeMillis() - sprintStartTime.getOrDefault(player.getUniqueId(), 0L);
+            double sprintingFactor = Math.min(1.0, sprintingDuration / MAX_SPRINT_DURATION);
+            physicalActivityFactor += 0.1 * sprintingFactor;
+        }
+
+        return physicalActivityFactor;
+    }
+    @EventHandler
+    public void onPlayerSprintStart(PlayerToggleSprintEvent event) {
+        Player player = event.getPlayer();
+        if (event.isSprinting()) {
+            sprintStartTime.put(player.getUniqueId(), System.currentTimeMillis());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerWalkStart(PlayerMoveEvent event) {
+        Player player = event.getPlayer();
+        if (event.getTo().distanceSquared(event.getFrom()) > 0.001) {
+            walkStartTime.put(player.getUniqueId(), System.currentTimeMillis());
+        }
+    }
 
 
     private double getFreezingFactor(double biomeTemperature, boolean isDay) {

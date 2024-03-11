@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 
 public class PlayerDataManager {
     private final Embersculpt plugin;
@@ -14,11 +15,11 @@ public class PlayerDataManager {
         this.plugin = plugin;
     }
 
-    public void savePlayerTemperature(Player player) {
-        File playerFile = getPlayerFile(player);
+    public void savePlayerTemperature(UUID playerId) {
+        File playerFile = getPlayerFile(playerId);
         FileConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
 
-        double temperature = plugin.getBodyTemperature(player);
+        double temperature = plugin.getBodyTemperature(playerId);
 
         config.set("temperature", temperature);
 
@@ -29,8 +30,8 @@ public class PlayerDataManager {
         }
     }
 
-    public double loadPlayerTemperature(Player player) {
-        File playerFile = getPlayerFile(player);
+    public double loadPlayerTemperature(UUID playerId) {
+        File playerFile = getPlayerFile(playerId);
         FileConfiguration config = YamlConfiguration.loadConfiguration(playerFile);
 
         if (playerFile.exists() && config.contains("temperature")) {
@@ -40,8 +41,9 @@ public class PlayerDataManager {
         return 0.0; // Default temperature
     }
 
-    private File getPlayerFile(Player player) {
-        String playerId = player.getUniqueId().toString();
-        return new File(plugin.getDataFolder(), "playerdata/" + playerId + ".yml");
+    public File getPlayerFile(UUID playerId) {
+        String playerIdString = playerId.toString();
+        return new File(plugin.getDataFolder(), "playerdata/" + playerIdString + ".yml");
     }
+
 }
