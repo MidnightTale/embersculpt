@@ -7,18 +7,24 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.HashMap;
 
 public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listener {
     private HashMap<Player, Double> bodyTemperatureMap;
+    private PlayerDataManager playerDataManager;
     private static final double MAX_TEMPERATURE = 100.0;
     private static final double MIN_TEMPERATURE = -100.0;
 
     @Override
     public void onEnable() {
         bodyTemperatureMap = new HashMap<>();
+        playerDataManager = new PlayerDataManager(this);
 
         new WrappedRunnable() {
             @Override
@@ -26,12 +32,45 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                 updateBodyTemperature();
             }
         }.runTaskTimer(this, 1, 20);
+        getServer().getPluginManager().registerEvents(this, this);
     }
 
     @Override
     public void onDisable() {
+        for (Player player : bodyTemperatureMap.keySet()) {
+            playerDataManager.savePlayerTemperature(player);
+        }
         bodyTemperatureMap.clear();
     }
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        double temperature = playerDataManager.loadPlayerTemperature(player);
+        setBodyTemperature(player, temperature);
+        updateActionBar(player);
+    }
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        playerDataManager.savePlayerTemperature(player);
+        bodyTemperatureMap.remove(player);
+    }
+
+
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        // Reset temperature data for the dead player
+        Player player = event.getEntity();
+        bodyTemperatureMap.remove(player);
+    }
+    public double getBodyTemperature(Player player) {
+        return bodyTemperatureMap.getOrDefault(player, 0.0);
+    }
+
+    public void setBodyTemperature(Player player, double temperature) {
+        bodyTemperatureMap.put(player, temperature);
+    }
+
 
     private double calculateTemperatureSkyLightChange(Player player, int skylightLevel, double biomeTemperatureChange) {
         // Define parameters for skylight influence on temperature
@@ -55,16 +94,17 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
 
         if (isDay) {
-            minRiseChangeRate = 0.07;
-            maxRiseChangeRate = 0.9;
-            minDecreaseChangeRate = -0.1;
-            maxDecreaseChangeRate = -1.3;
+            minRiseChangeRate = 0.05; // Adjust this value
+            maxRiseChangeRate = 0.5;  // Adjust this value
+            minDecreaseChangeRate = -0.2; // Adjust this value
+            maxDecreaseChangeRate = -0.02; // Adjust this value
         } else {
-            minRiseChangeRate = 0.0001;
-            maxRiseChangeRate = 0.002;
-            minDecreaseChangeRate = -0.2;
-            maxDecreaseChangeRate = -1.5;
+            minRiseChangeRate = 0.0001; // Adjust this value
+            maxRiseChangeRate = 0.002;  // Adjust this value
+            minDecreaseChangeRate = -0.5; // Adjust this value
+            maxDecreaseChangeRate = -0.02; // Adjust this value
         }
+
 
         // Calculate the original changeRate without biomeTemperatureChange
         double changeRate;
@@ -91,7 +131,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             }
             // Apply time-based adjustments
             if (isDay) {
-                adjustedChangeRate *= getDaytimeMultiplier(time);
+                adjustedChangeRate *= getDaytimeMultiplier(time, isDay);
             } else {
                 adjustedChangeRate /= getNighttimeDeMultiplier(time, isDay);
             }
@@ -105,7 +145,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             return 0.0;
         }
     }
-    private double getDaytimeMultiplier(long time) {
+    private double getDaytimeMultiplier(long time, boolean isDay) {
         // Adjust this function to make the rate stronger during daytime
 
         // Sunrise and sunset times
@@ -115,18 +155,21 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         long sunsetEnd = 19000;   // 7:00 PM
 
         // Get the current multiplier based on time of day
-        if (time >= sunriseStart && time <= sunriseEnd) {
-            // Increase temperature slightly during sunrise
-            return interpolate(0.85, 1.0, (double) (time - sunriseStart) / (sunriseEnd - sunriseStart));
-        } else if (time > sunriseEnd && time < sunsetStart) {
-            // Gradually increase temperature from sunrise to sunset
-            return interpolate(1.0, 1.9, (double) (time - sunriseEnd) / (sunsetStart - sunriseEnd));
-        } else if (time >= sunsetStart && time <= sunsetEnd) {
-            // Decrease temperature slightly during sunset
-            return interpolate(1.9, 0.94, (double) (time - sunsetStart) / (sunsetEnd - sunsetStart));
-        } else {
-            return 1.2; // Default multiplier
+        if (isDay) {
+            if (time >= sunriseStart && time <= sunriseEnd) {
+                // Increase temperature slightly during sunrise
+                return interpolate(0.85, 1.0, (double) (time - sunriseStart) / (sunriseEnd - sunriseStart));
+            } else if (time > sunriseEnd && time < sunsetStart) {
+                // Gradually increase temperature from sunrise to sunset
+                return interpolate(1.0, 1.9, (double) (time - sunriseEnd) / (sunsetStart - sunriseEnd));
+            } else if (time >= sunsetStart && time <= sunsetEnd) {
+                // Decrease temperature slightly during sunset
+                return interpolate(1.9, 0.94, (double) (time - sunsetStart) / (sunsetEnd - sunsetStart));
+            } else {
+                return 1.2; // Default multiplier
+            }
         }
+        return 0;
     }
 
     private double getNighttimeDeMultiplier(long time, boolean isDay) {
@@ -166,6 +209,10 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
     private void updateBodyTemperature() {
         for (Player player : Bukkit.getOnlinePlayers()) {
+            // Check if the player is in a death state
+            if (player.isDead()) {
+                continue; // Skip updating temperature for dead players
+            }
             // Get skylight level at player's location
             int skylightLevel = player.getLocation().getBlock().getLightFromSky();
 
@@ -177,7 +224,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             currentTemperature += skylightTemperatureChange;
 
             // Ensure the temperature stays within the specified range
-            double stabilizingFactor = (currentTemperature - 18.0) * 0.01;
+            double stabilizingFactor = calculateStabilizingFactor(currentTemperature);
             currentTemperature -= stabilizingFactor;
 
             // Ensure the temperature stays within the specified range
@@ -188,6 +235,38 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             updateActionBar(player);
         }
     }
+
+    private double calculateStabilizingFactor(double currentTemperature) {
+        // Calculate a stabilizing factor that decreases as the temperature approaches its lower limit
+        double temperatureRange = MAX_TEMPERATURE - MIN_TEMPERATURE;
+        double temperatureRatio = (currentTemperature - MIN_TEMPERATURE) / temperatureRange;
+
+        // Adjust the rate of decrease based on your preference
+        double decreaseRate = 0.01; // You can adjust this value
+
+        // Apply a nonlinear function to decrease the stabilizing factor
+        double stabilizingFactor;
+
+        // Adjust stabilizing factor based on different temperature ranges
+        if (currentTemperature < -5) {
+            // Strong stabilizing factor when temperature is far below -5
+            stabilizingFactor = (1 - Math.pow(temperatureRatio, 5)) * decreaseRate;
+        } else if (currentTemperature < 10) {
+            // Moderate stabilizing factor when temperature is between -5 and 10
+            stabilizingFactor = (1 - Math.pow(temperatureRatio, 3)) * decreaseRate;
+        } else if (currentTemperature < 30) {
+            // Weaker stabilizing factor when temperature is between 10 and 30
+            stabilizingFactor = (1 - Math.pow(temperatureRatio, 2)) * decreaseRate;
+        } else {
+            // Very weak stabilizing factor when temperature is above 30
+            stabilizingFactor = (1 - Math.pow(temperatureRatio, 1.5)) * decreaseRate;
+        }
+
+        return stabilizingFactor;
+    }
+
+
+
 
     private double getFreezingFactor(double biomeTemperature, boolean isDay) {
         double factor = 0.0;
@@ -255,11 +334,30 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         // Get the heating factor based on the biome temperature and day/night status
         double heatingFactor = getHeatFactor(biomeTemperature, isDay);
 
+        // Get the weather factor based on the current weather conditions
+        double weatherFactor = getWeatherFactor(player.getWorld().hasStorm(), player.getWorld().isThundering());
+
         // Ensure the biome-specific temperature change stays within a reasonable range
-        double biomeTemperatureChange = Math.max(-0.1, Math.min(0.1, freezingFactor + heatingFactor));
+        double biomeTemperatureChange = Math.max(-0.1, Math.min(0.1, freezingFactor + heatingFactor + weatherFactor));
 
         return biomeTemperatureChange;
     }
+
+    private double getWeatherFactor(boolean isRaining, boolean isThundering) {
+        double weatherFactor = 0.0;
+
+        // Add weather effects to the temperature change
+        if (isRaining) {
+            weatherFactor -= 0.3; // Adjust this value based on the impact of rain on temperature
+        }
+
+        if (isThundering) {
+            weatherFactor -= 0.7; // Adjust this value based on the impact of thunderstorm on temperature
+        }
+
+        return weatherFactor;
+    }
+
 
 
 
@@ -285,7 +383,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                 boolean isDay = time >= 0 && time < 12000;
 
                 // Get time-specific multipliers
-                double daytimeMultiplier = getDaytimeMultiplier(time);
+                double daytimeMultiplier = getDaytimeMultiplier(time, isDay);
                 double nighttimeMultiplier = getNighttimeDeMultiplier(time, isDay);
 
                 // Calculate biome-specific factors
