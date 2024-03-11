@@ -581,7 +581,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     private void reduceTemperaturenPotionSplash(Player player) {
         // Apply temperature reduction for 30 seconds at a rate of 3 per second
         int durationInSeconds = 3;
-        double reductionRate = 0.2;
+        double reductionRate = 12;
 
         new WrappedRunnable() {
             int secondsRemaining = durationInSeconds;
@@ -609,12 +609,12 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                     cancel(); // Stop the task
                 }
             }
-        }.runTaskTimer(this, 1, 1); // Run the task every second
+        }.runTaskTimer(this, 1, 20); // Run the task every second
     }
     private void reduceTemperatureOnLingeringCloud(Player player) {
         // Apply temperature reduction for 30 seconds at a rate of 3 per second
-        int durationInSeconds = 3;
-        double reductionRate = 0.01;
+        int durationInSeconds = 30;
+        double reductionRate = 1;
 
         new WrappedRunnable() {
             int secondsRemaining = durationInSeconds;
@@ -642,12 +642,12 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                     cancel(); // Stop the task
                 }
             }
-        }.runTaskTimer(this, 1, 1); // Run the task every second
+        }.runTaskTimer(this, 1, 20); // Run the task every second
     }
     private void reduceTemperatureOnDrink(Player player) {
         // Apply temperature reduction for 30 seconds at a rate of 3 per second
-        int durationInSeconds = 60;
-        double reductionRate = 0.005;
+        int durationInSeconds = 128;
+        double reductionRate = 1.6;
 
         new WrappedRunnable() {
             int secondsRemaining = durationInSeconds;
@@ -675,7 +675,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                     cancel(); // Stop the task
                 }
             }
-        }.runTaskTimer(this, 1, 1); // Run the task every second
+        }.runTaskTimer(this, 1, 20); // Run the task every second
     }
 
     private boolean isPlayerInLingeringCloud(Player player) {
