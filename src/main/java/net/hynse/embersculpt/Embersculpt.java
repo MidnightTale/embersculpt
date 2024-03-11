@@ -130,7 +130,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         Location playerLocation = player.getLocation();
 
         // Set the range to search for nearby blocks
-        int searchRange = 5;
+        int searchRange = 7;
 
         // Create an instance of the LightData class
         LightData lightData = new LightData();
@@ -182,17 +182,17 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             // Adjustments for nighttime based on the average light level and biome temperature
             // (You can customize this part based on your desired temperature adjustments)
             if (averageLightLevel >= 14) {
-                targetTemperature = 25.0 + (biomeTemperature * 4.6);
+                targetTemperature = 25.0 + (biomeTemperature * 32.6);
             } else if (averageLightLevel >= 11) {
-                targetTemperature = 23.0 + (biomeTemperature * 3.7);
+                targetTemperature = 23.0 + (biomeTemperature * 28.7);
             } else if (averageLightLevel <= 8) {
-                targetTemperature = 21.0 + (biomeTemperature * 3.2);
+                targetTemperature = 21.0 + (biomeTemperature * 25.2);
             }
         }
 
         // Adjust the current temperature towards the target
         double currentTemperature = getPlayerTemperature(player);
-        temperatureChange += (targetTemperature - currentTemperature) * 0.03; // Fine-tuned adjustment factor
+        temperatureChange += (targetTemperature - currentTemperature) * 0.6; // Fine-tuned adjustment factor
 
         return temperatureChange;
     }
@@ -279,10 +279,10 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
     private double getBiomeTemperatureChange(double biomeTemperature) {
         // Adjust temperature based on biome
-        if (biomeTemperature < 0.1) {
-            return -0.05; // Extremely cold biome
-        } else if (biomeTemperature < 0.2) {
-            return -0.03; // Very cold biome
+        if (biomeTemperature < -0.6) {
+            return -0.6; // Extremely cold biome
+        } else if (biomeTemperature < -0.2) {
+            return -0.2; // Very cold biome
         } else if (biomeTemperature > 1.6) {
             return 0.005; // Extremely warm biome
         } else if (biomeTemperature > 0.7) {
