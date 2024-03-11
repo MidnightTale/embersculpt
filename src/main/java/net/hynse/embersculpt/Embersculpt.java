@@ -2,10 +2,7 @@ package net.hynse.embersculpt;
 
 import me.nahu.scheduler.wrapper.FoliaWrappedJavaPlugin;
 import me.nahu.scheduler.wrapper.runnable.WrappedRunnable;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -24,7 +21,7 @@ import java.util.UUID;
 import static org.bukkit.Material.*;
 
 public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listener {
-    private HashMap<UUID, Double> bodyTemperatureMap;
+    private HashMap<Player, Double> bodyTemperatureMap;
     private PlayerDataManager playerDataManager;
     private static final double MAX_TEMPERATURE = 100.0;
     private static final double MIN_TEMPERATURE = -100.0;
@@ -48,22 +45,22 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
     @Override
     public void onDisable() {
-        for (UUID playerId : bodyTemperatureMap.keySet()) {
-            playerDataManager.savePlayerTemperature(playerId);
+        for (Player player : bodyTemperatureMap.keySet()) {
+            playerDataManager.savePlayerTemperature(player);
         }
         bodyTemperatureMap.clear();
     }
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        double temperature = playerDataManager.loadPlayerTemperature(player.getUniqueId());
-        setBodyTemperature(player.getUniqueId(), temperature);
+        double temperature = playerDataManager.loadPlayerTemperature(player);
+        setBodyTemperature(player, temperature);
         updateActionBar(player);
     }
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        playerDataManager.savePlayerTemperature(player.getUniqueId());
+        playerDataManager.savePlayerTemperature(player);
         bodyTemperatureMap.remove(player);
     }
 
@@ -74,13 +71,12 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         Player player = event.getEntity();
         bodyTemperatureMap.remove(player);
     }
-    public double getBodyTemperature(UUID playerId) {
-        return bodyTemperatureMap.getOrDefault(playerId, 0.0);
+    public double getBodyTemperature(Player player) {
+        return bodyTemperatureMap.getOrDefault(player, 0.0);
     }
 
-
-    public void setBodyTemperature(UUID playerId, double temperature) {
-        bodyTemperatureMap.put(playerId, temperature);
+    public void setBodyTemperature(Player player, double temperature) {
+        bodyTemperatureMap.put(player, temperature);
     }
 
 
@@ -98,24 +94,58 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         Location biomeLocation = player.getLocation();
         double biomeTemperature = biomeLocation.getBlock().getTemperature();
 
+        // Check if the player is in the Nether
+        boolean isNether = player.getWorld().getEnvironment().equals(org.bukkit.World.Environment.NETHER);
+        boolean isEnd = player.getWorld().getEnvironment().equals(org.bukkit.World.Environment.THE_END);
+
 // Check if the player is in the shadow during the day in a hot biome
         boolean isShadowDuringDayInHotBiome = isDay && skylightLevel < minSkylight && biomeTemperature > 0.4;
 
 // Check if the player is in the shadow during the night in a hot biome
         boolean isShadowDuringNightInHotBiome = !isDay && skylightLevel < minSkylight && biomeTemperature > 0.4;
 
-
         if (isDay) {
-            minRiseChangeRate = 0.05; // Adjust this value
-            maxRiseChangeRate = 0.5;  // Adjust this value
-            minDecreaseChangeRate = -0.2; // Adjust this value
-            maxDecreaseChangeRate = -0.02; // Adjust this value
+            // Adjust rates for the Nether
+            if (isNether) {
+                minRiseChangeRate = 0.3; // Adjust this value
+                maxRiseChangeRate = 1.5; // Adjust this value
+                minDecreaseChangeRate = -0.3; // Adjust this value
+                maxDecreaseChangeRate = -0.05; // Adjust this value
+            } else if (isEnd) {
+                // Adjust rates for the End
+                minRiseChangeRate = 0.01; // Adjust this value
+                maxRiseChangeRate = 0.06; // Adjust this value
+                minDecreaseChangeRate = -0.1; // Adjust this value
+                maxDecreaseChangeRate = -0.6; // Adjust this value
+            } else {
+                // Adjust rates for the Overworld (day)
+                minRiseChangeRate = 0.05; // Adjust this value
+                maxRiseChangeRate = 1.13; // Adjust this value
+                minDecreaseChangeRate = -0.02; // Adjust this value
+                maxDecreaseChangeRate = -0.13; // Adjust this value
+            }
         } else {
-            minRiseChangeRate = 0.0001; // Adjust this value
-            maxRiseChangeRate = 0.002;  // Adjust this value
-            minDecreaseChangeRate = -0.5; // Adjust this value
-            maxDecreaseChangeRate = -0.02; // Adjust this value
+            // Adjust rates for the Nether
+            if (isNether) {
+                minRiseChangeRate = 0.3; // Adjust this value
+                maxRiseChangeRate = 1.5; // Adjust this value
+                minDecreaseChangeRate = -0.3; // Adjust this value
+                maxDecreaseChangeRate = -0.05; // Adjust this value
+            } else if (isEnd) {
+                // Adjust rates for the End
+                minRiseChangeRate = 0.01; // Adjust this value
+                maxRiseChangeRate = 0.06; // Adjust this value
+                minDecreaseChangeRate = -0.1; // Adjust this value
+                maxDecreaseChangeRate = -0.6; // Adjust this value
+            } else {
+                // Adjust rates for the Overworld (night)
+                minRiseChangeRate = 0.0001; // Adjust this value
+                maxRiseChangeRate = 0.002; // Adjust this value
+                minDecreaseChangeRate = -0.5; // Adjust this value
+                maxDecreaseChangeRate = -0.3; // Adjust this value
+            }
         }
+
 
 
         // Calculate the original changeRate without biomeTemperatureChange
@@ -256,7 +286,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             // Ensure the temperature stays within the specified range
             currentTemperature = Math.max(MIN_TEMPERATURE, Math.min(MAX_TEMPERATURE, currentTemperature));
 
-            bodyTemperatureMap.put(player.getUniqueId(), currentTemperature);
+            bodyTemperatureMap.put(player, currentTemperature);
 
             updateActionBar(player);
         }
@@ -299,27 +329,27 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             case LEATHER_CHESTPLATE:
             case LEATHER_LEGGINGS:
             case LEATHER_BOOTS:
-                return 0.1;
+                return 0.01;
             case IRON_HELMET:
             case IRON_CHESTPLATE:
             case IRON_LEGGINGS:
             case IRON_BOOTS:
-                return 0.2;
+                return 0.005;
             case GOLDEN_HELMET:
             case GOLDEN_CHESTPLATE:
             case GOLDEN_LEGGINGS:
             case GOLDEN_BOOTS:
-                return 0.15;
+                return 0.03;
             case DIAMOND_HELMET:
             case DIAMOND_CHESTPLATE:
             case DIAMOND_LEGGINGS:
             case DIAMOND_BOOTS:
-                return 0.44;
+                return 0.05;
             case NETHERITE_HELMET:
             case NETHERITE_CHESTPLATE:
             case NETHERITE_LEGGINGS:
             case NETHERITE_BOOTS:
-                return 0.77;
+                return 0.07;
             default:
                 return 0.0;
         }
