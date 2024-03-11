@@ -93,7 +93,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             if (isDay) {
                 adjustedChangeRate *= getDaytimeMultiplier(time);
             } else {
-                adjustedChangeRate /= getNighttimeDeMultiplier(time);
+                adjustedChangeRate /= getNighttimeDeMultiplier(time, isDay);
             }
 
             return adjustedChangeRate;
@@ -117,19 +117,19 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         // Get the current multiplier based on time of day
         if (time >= sunriseStart && time <= sunriseEnd) {
             // Increase temperature slightly during sunrise
-            return 0.9; // Adjust the multiplier as needed
+            return interpolate(0.85, 1.0, (double) (time - sunriseStart) / (sunriseEnd - sunriseStart));
         } else if (time > sunriseEnd && time < sunsetStart) {
             // Gradually increase temperature from sunrise to sunset
-            return 1.0; // Adjust the multiplier as needed
+            return interpolate(1.0, 1.9, (double) (time - sunriseEnd) / (sunsetStart - sunriseEnd));
         } else if (time >= sunsetStart && time <= sunsetEnd) {
             // Decrease temperature slightly during sunset
-            return 0.9; // Adjust the multiplier as needed
+            return interpolate(1.9, 0.94, (double) (time - sunsetStart) / (sunsetEnd - sunsetStart));
         } else {
-            return 1.0; // Default multiplier
+            return 1.2; // Default multiplier
         }
     }
 
-    private double getNighttimeDeMultiplier(long time) {
+    private double getNighttimeDeMultiplier(long time, boolean isDay) {
         // Adjust this function to make the rate decrease stronger during nighttime
 
         // Midnight time
@@ -137,13 +137,22 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         long midnightEnd = 24000;   // 12:00 AM
 
         // Get the current multiplier based on time of night
-        if ((time >= 0 && time <= 4000) || (time >= midnightStart && time <= midnightEnd)) {
-            // Increase temperature slightly during midnight and early morning
-            return 0.8; // Example: Make the rate decrease 20% stronger during nighttime
-        } else {
-            return 1.0; // Default multiplier
+        if (!isDay) {
+            if ((time >= 0 && time <= 4000) || (time >= midnightStart && time <= midnightEnd)) {
+                // Increase temperature slightly during midnight and early morning
+                return interpolate(1.62, 1.12, (double) (time - midnightStart) / (4000 + midnightStart));
+            } else {
+                return 1.12; // Default multiplier
+            }
         }
+        return 0;
     }
+
+    // Helper method for linear interpolation between two values
+    private double interpolate(double start, double end, double t) {
+        return start + t * (end - start);
+    }
+
 
 
 
@@ -273,10 +282,11 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             public void run() {
                 Biome biome = location.getBlock().getBiome();
                 double biomeTemperature = location.getBlock().getTemperature();
+                boolean isDay = time >= 0 && time < 12000;
 
                 // Get time-specific multipliers
                 double daytimeMultiplier = getDaytimeMultiplier(time);
-                double nighttimeMultiplier = getNighttimeDeMultiplier(time);
+                double nighttimeMultiplier = getNighttimeDeMultiplier(time, isDay);
 
                 // Calculate biome-specific factors
                 double freezingFactor = getFreezingFactor(biomeTemperature, time < 12000);
@@ -292,8 +302,8 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                         ChatColor.GRAY + " | R:" + ChatColor.GREEN + formattedChangeRate +
                         ChatColor.GRAY + " | HF:" + ChatColor.RED + String.format("%.4f", heatingFactor) +
                         ChatColor.GRAY + " | FF:" + ChatColor.BLUE + String.format("%.4f", freezingFactor) +
-                        ChatColor.GRAY + " | DayMult:" + ChatColor.GOLD + String.format("%.2f", daytimeMultiplier) +
-                        ChatColor.GRAY + " | NightMult:" + ChatColor.DARK_PURPLE + String.format("%.2f", nighttimeMultiplier) +
+                        ChatColor.GRAY + " | Day x" + ChatColor.GOLD + String.format("%.2f", daytimeMultiplier) +
+                        ChatColor.GRAY + " | Night x:" + ChatColor.DARK_PURPLE + String.format("%.2f", nighttimeMultiplier) +
                         biomeInfo;
 
                 // Send action bar message to the player
