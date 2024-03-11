@@ -48,10 +48,10 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
         double biomeTemperature = biomeLocation.getBlock().getTemperature();
 
 // Check if the player is in the shadow during the day in a hot biome
-        boolean isShadowDuringDayInHotBiome = isDay && skylightLevel < minSkylight && biomeTemperature >= 0.7;
+        boolean isShadowDuringDayInHotBiome = isDay && skylightLevel < minSkylight && biomeTemperature > 0.4;
 
 // Check if the player is in the shadow during the night in a hot biome
-        boolean isShadowDuringNightInHotBiome = !isDay && skylightLevel < minSkylight && biomeTemperature >= 0.7;
+        boolean isShadowDuringNightInHotBiome = !isDay && skylightLevel < minSkylight && biomeTemperature > 0.4;
 
 
         if (isDay) {
@@ -81,9 +81,19 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
             double adjustedChangeRate = changeRate + biomeTemperatureChange;
 
+            // Introduce stabilizing factor to bring temperature back to a central value
+            double stabilizingFactor = (bodyTemperatureMap.getOrDefault(player, 0.0) - 18.0) * 0.01;
+            adjustedChangeRate -= stabilizingFactor;
+
             // Adjust the temperature to not go below 37 during the day in the shadow of a hot biome
             if (isShadowDuringDayInHotBiome) {
                 adjustedChangeRate = Math.max(0.0, adjustedChangeRate);
+            }
+            // Apply time-based adjustments
+            if (isDay) {
+                adjustedChangeRate *= getDaytimeMultiplier(time);
+            } else {
+                adjustedChangeRate /= getNighttimeDeMultiplier(time);
             }
 
             return adjustedChangeRate;
@@ -95,6 +105,46 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             return 0.0;
         }
     }
+    private double getDaytimeMultiplier(long time) {
+        // Adjust this function to make the rate stronger during daytime
+
+        // Sunrise and sunset times
+        long sunriseStart = 5000; // 5:00 AM
+        long sunriseEnd = 7000;   // 7:00 AM
+        long sunsetStart = 17000; // 5:00 PM
+        long sunsetEnd = 19000;   // 7:00 PM
+
+        // Get the current multiplier based on time of day
+        if (time >= sunriseStart && time <= sunriseEnd) {
+            // Increase temperature slightly during sunrise
+            return 0.9; // Adjust the multiplier as needed
+        } else if (time > sunriseEnd && time < sunsetStart) {
+            // Gradually increase temperature from sunrise to sunset
+            return 1.0; // Adjust the multiplier as needed
+        } else if (time >= sunsetStart && time <= sunsetEnd) {
+            // Decrease temperature slightly during sunset
+            return 0.9; // Adjust the multiplier as needed
+        } else {
+            return 1.0; // Default multiplier
+        }
+    }
+
+    private double getNighttimeDeMultiplier(long time) {
+        // Adjust this function to make the rate decrease stronger during nighttime
+
+        // Midnight time
+        long midnightStart = 18000; // 6:00 PM
+        long midnightEnd = 24000;   // 12:00 AM
+
+        // Get the current multiplier based on time of night
+        if ((time >= 0 && time <= 4000) || (time >= midnightStart && time <= midnightEnd)) {
+            // Increase temperature slightly during midnight and early morning
+            return 0.8; // Example: Make the rate decrease 20% stronger during nighttime
+        } else {
+            return 1.0; // Default multiplier
+        }
+    }
+
 
 
     private double calculateTemperatureSkyLightChange(Player player, int skylightLevel) {
@@ -118,6 +168,10 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             currentTemperature += skylightTemperatureChange;
 
             // Ensure the temperature stays within the specified range
+            double stabilizingFactor = (currentTemperature - 18.0) * 0.01;
+            currentTemperature -= stabilizingFactor;
+
+            // Ensure the temperature stays within the specified range
             currentTemperature = Math.max(MIN_TEMPERATURE, Math.min(MAX_TEMPERATURE, currentTemperature));
 
             bodyTemperatureMap.put(player, currentTemperature);
@@ -127,52 +181,64 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     }
 
     private double getFreezingFactor(double biomeTemperature, boolean isDay) {
+        double factor = 0.0;
+
         if (!isDay) {
             if (biomeTemperature <= -0.7) {
-                return -Math.pow(Math.abs(biomeTemperature), 1.7) * 67.22; // Adjust the factor based on your preference
+                factor = -Math.pow(Math.abs(biomeTemperature), 1.7) * 67.22; // Adjust the factor based on your preference
             } else if (biomeTemperature <= 0.247) {
-                return -Math.pow(Math.abs(biomeTemperature), 1.64) * 53.61; // Adjust the factor based on your preference
+                factor = -Math.pow(Math.abs(biomeTemperature), 1.64) * 53.61; // Adjust the factor based on your preference
             }
-        }
-        if (isDay) {
+        } else {
             if (biomeTemperature <= -0.7) {
-                return -Math.pow(Math.abs(biomeTemperature), 1.56) * 28.61; // Adjust the factor based on your preference
+                factor = -Math.pow(Math.abs(biomeTemperature), 1.56) * 28.61; // Adjust the factor based on your preference
             } else if (biomeTemperature <= 0.247) {
-                return -Math.pow(Math.abs(biomeTemperature), 1.52) * 24.24; // Adjust the factor based on your preference
+                factor = -Math.pow(Math.abs(biomeTemperature), 1.52) * 24.24; // Adjust the factor based on your preference
             }
         }
-        return 0.0; // Default: no freezing factor
+
+        // Introduce non-linear function to make it harder to go up and down near temperature limits
+        factor *= Math.exp(-Math.pow((Math.abs(biomeTemperature) - 10.0) / 5.0, 2));
+
+        return factor;
     }
 
     private double getHeatFactor(double biomeTemperature, boolean isDay) {
+        double factor = 0.0;
+
         if (isDay) {
             if (biomeTemperature >= 1.46) {
-                return Math.pow(Math.abs(biomeTemperature), 2.2) * 32.22; // Adjust the factor based on your preference
+                factor = Math.pow(Math.abs(biomeTemperature), 2.2) * 32.22; // Adjust the factor based on your preference
             } else if (biomeTemperature >= 0.76) {
-                return Math.pow(Math.abs(biomeTemperature), 1.7) * 17.61; // Adjust the factor based on your preference
+                factor = Math.pow(Math.abs(biomeTemperature), 1.7) * 17.61; // Adjust the factor based on your preference
             }
-        }
-        if (!isDay) {
+        } else {
             if (biomeTemperature >= 1.46) {
-                return Math.pow(Math.abs(biomeTemperature), 1.32) * 0.01; // Adjust the factor based on your preference
+                factor = Math.pow(Math.abs(biomeTemperature), 1.32) * 0.01; // Adjust the factor based on your preference
             } else if (biomeTemperature >= 0.76) {
-                return Math.pow(Math.abs(biomeTemperature), 1.15) * 0.005; // Adjust the factor based on your preference
+                factor = Math.pow(Math.abs(biomeTemperature), 1.15) * 0.005; // Adjust the factor based on your preference
             }
         }
-        return 0.0; // Default: no heating factor
+
+        // Introduce non-linear function to make it harder to go up and down near temperature limits
+        factor *= Math.exp(-Math.pow((Math.abs(biomeTemperature) - 10.0) / 5.0, 2));
+
+        return factor;
     }
-
-
-
-
 
     private double calculateTemperatureBiome(Player player) {
         Location location = player.getLocation();
         long time = player.getWorld().getTime();
         boolean isDay = time >= 0 && time < 12000;
 
-        // Get the temperature factor of the biome
-        double biomeTemperature = location.getBlock().getTemperature();
+        // Synchronize chunk loading on the main thread
+        double biomeTemperature = 0.0;
+        synchronized (this) {
+            // Ensure chunk is loaded before accessing block information
+            if (location.getWorld().isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
+                biomeTemperature = location.getBlock().getTemperature();
+            }
+        }
 
         // Get the freezing factor based on the biome temperature
         double freezingFactor = getFreezingFactor(biomeTemperature, isDay);
@@ -187,6 +253,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     }
 
 
+
     private void updateActionBar(Player player) {
         double temperature = bodyTemperatureMap.getOrDefault(player, 0.0);
 
@@ -199,13 +266,17 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
         // Get biome information asynchronously
         Location location = player.getLocation();
+        long time = player.getWorld().getTime();  // Add this line to get the current time
+
         new WrappedRunnable() {
             @Override
             public void run() {
                 Biome biome = location.getBlock().getBiome();
                 double biomeTemperature = location.getBlock().getTemperature();
-                long time = player.getWorld().getTime();
 
+                // Get time-specific multipliers
+                double daytimeMultiplier = getDaytimeMultiplier(time);
+                double nighttimeMultiplier = getNighttimeDeMultiplier(time);
 
                 // Calculate biome-specific factors
                 double freezingFactor = getFreezingFactor(biomeTemperature, time < 12000);
@@ -221,6 +292,8 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                         ChatColor.GRAY + " | R:" + ChatColor.GREEN + formattedChangeRate +
                         ChatColor.GRAY + " | HF:" + ChatColor.RED + String.format("%.4f", heatingFactor) +
                         ChatColor.GRAY + " | FF:" + ChatColor.BLUE + String.format("%.4f", freezingFactor) +
+                        ChatColor.GRAY + " | DayMult:" + ChatColor.GOLD + String.format("%.2f", daytimeMultiplier) +
+                        ChatColor.GRAY + " | NightMult:" + ChatColor.DARK_PURPLE + String.format("%.2f", nighttimeMultiplier) +
                         biomeInfo;
 
                 // Send action bar message to the player
@@ -228,5 +301,6 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             }
         }.runTaskAtLocation(this, location);
     }
+
 
 }
