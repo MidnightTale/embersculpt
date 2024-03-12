@@ -15,22 +15,22 @@ public class BlockTemperature {
         if (block.getType() == Material.WATER || block.getType() == Material.WATER_CAULDRON) {
             // Decrease the player's temperature until it reaches 0
             if (currentTemperature > -100) {
-                currentTemperature -= (currentTemperature < -30 ? 0.7 : 0.2); // Adjust the rate at which temperature decreases
+                currentTemperature -= (currentTemperature < -30 ? 1.6 : 0.1); // Adjust the rate at which temperature decreases
             }
         } else if (block.getType() == Material.POWDER_SNOW || block.getType() == Material.POWDER_SNOW_CAULDRON) {
             // Decrease the player's temperature until it reaches -100
             if (currentTemperature > -100) {
-                currentTemperature -= (currentTemperature < -50 ? 1.0 : 0.5); // Adjust the rate at which temperature decreases
+                currentTemperature -= (currentTemperature < -50 ? 2.7 : 0.5); // Adjust the rate at which temperature decreases
             }
         } else if (block.getType() == Material.LAVA || block.getType() == Material.LAVA_CAULDRON) {
             // Decrease the player's temperature until it reaches 0
             if (currentTemperature < 100) {
-                currentTemperature += (currentTemperature > 0 ? 0.2 : 0.7); // Adjust the rate at which temperature decreases
+                currentTemperature += (currentTemperature > 0 ? 1.2 : 1.9); // Adjust the rate at which temperature decreases
             }
         } else if (block.getType() == Material.FIRE || block.getType() == Material.SOUL_FIRE || block.getType() == Material.CAMPFIRE || block.getType() == Material.SOUL_CAMPFIRE) {
             // Decrease the player's temperature until it reaches 0
             if (currentTemperature < 100) {
-                currentTemperature += (currentTemperature > 0 ? 0.1 : 0.3); // Adjust the rate at which temperature decreases
+                currentTemperature += (currentTemperature > 0 ? 0.4 : 0.7); // Adjust the rate at which temperature decreases
             }
         }
 
@@ -74,21 +74,21 @@ public class BlockTemperature {
     // Calculate the rate of temperature change based on the current temperature
     private double calculateTemperatureRate(double temperature) {
         if (temperature < -100) {
-            return 0.07; // Very slow rate
+            return 0.7; // Very slow rate
         } else if (temperature < -70) {
-            return 0.04; // Slower rate
+            return 0.5; // Slower rate
         } else if (temperature < -30) {
-            return 0.02; // Slow rate
+            return 0.2; // Slow rate
         } else if (temperature < -10) {
-            return 0.01; // Moderate rate
+            return 0.1; // Moderate rate
         } else if (temperature < 37) {
-            return 0.007; // Normal rate
+            return 0.02; // Normal rate
         } else if (temperature < 46) {
-            return 0.003; // Moderate rate
+            return 0.005; // Moderate rate
         } else if (temperature < 80) {
-            return 0.002; // Slow rate
+            return 0.001; // Slow rate
         } else if (temperature < 100) {
-            return 0.001; // Slower rate
+            return 0.0005; // Slower rate
         } else {
             return 0.0005; // Very slow rate
         }
