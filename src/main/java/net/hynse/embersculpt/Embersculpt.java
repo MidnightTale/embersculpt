@@ -92,13 +92,14 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
                     ItemStack[] armorContents = player.getInventory().getArmorContents();
 
                     // Get temperature change based on proximity to heat sources
-                    double heatSourceTemperatureChange = blockTemperature.calculateTemperatureHeatSources(player);
+//                    double heatSourceTemperatureChange = blockTemperature.calculateTemperatureHeatSources(player,7);
+                    Embersculpt.blockTemperature.calculateTemperatureHeatSources(player,3);
 
                     // Combine all factors to update player's temperature
                     double currentTemperature = playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0);
                     currentTemperature += skylightTemperatureChange;
                     currentTemperature += physicalActivityFactor;
-                    currentTemperature += heatSourceTemperatureChange;
+//                    currentTemperature += heatSourceTemperatureChange;
 
                     // Ensure the temperature stays within the specified range
                     double stabilizingFactor = util.calculateStabilizingFactor(currentTemperature, armorContents, player);

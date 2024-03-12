@@ -37,11 +37,10 @@ public class BlockTemperature {
         // Update the player's body temperature
         Embersculpt.playerDataManager.bodyTemperatureMap.put(player, Math.min(100.0, Math.max(-100.0, currentTemperature)));
     }
-    public double calculateTemperatureHeatSources(Player player) {
-        final double[] heatSourceTemperatureChange = {0.0};
 
-        // Define the radius to search for heat sources
-        int searchRadius = 5;
+    public void calculateTemperatureHeatSources(Player player, int searchRadius) {
+        final double[] currentTemperature = {Embersculpt.playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0)};
+        final double ratesky = Embersculpt.skyLight.calculateTemperatureSkyLightChange(player, player.getLocation().getBlock().getLightFromSky());
 
         // Get the player's location
         Location playerLocation = player.getLocation();
@@ -55,20 +54,73 @@ public class BlockTemperature {
                             Location currentLocation = playerLocation.clone().add(x, y, z);
                             Material blockMaterial = currentLocation.getBlock().getType();
 
-                            // Check if the block is a torch or lava
-                            if (blockMaterial == Material.TORCH || blockMaterial == Material.LAVA || blockMaterial == Material.CAMPFIRE || blockMaterial == Material.SOUL_CAMPFIRE || blockMaterial == Material.LANTERN || blockMaterial == Material.SOUL_LANTERN || blockMaterial == Material.LIGHT || blockMaterial == Material.SHROOMLIGHT || blockMaterial == Material.GLOWSTONE || blockMaterial == Material.GLOW_ITEM_FRAME || blockMaterial == Material.GLOW_BERRIES || blockMaterial == Material.FIRE || blockMaterial == Material.SOUL_FIRE || blockMaterial == Material.SEA_LANTERN || blockMaterial == Material.OCHRE_FROGLIGHT || blockMaterial == Material.PEARLESCENT_FROGLIGHT || blockMaterial == Material.VERDANT_FROGLIGHT) {
-                                // Calculate the distance from the player to the heat source
-                                double distance = playerLocation.distance(currentLocation);
+                            // Check if the block is a heat source and the player's location block is AIR
+                            if (isHeatSource(blockMaterial) && currentLocation.getBlock().getType() == Material.AIR) {
+                                // Adjust the temperature based on the rate
+                                double rate = calculateTemperatureRate(currentTemperature[0]);
+                                currentTemperature[0] += (currentTemperature[0] > 0 ? 0.1 : 0.3) * rate * ratesky;
 
-                                // Adjust this value based on the impact of heat sources on temperature
-                                double proximityEffect = 1.0 - (distance / searchRadius);
-                                heatSourceTemperatureChange[0] += 0.6 * proximityEffect;
+                                // Update the player's body temperature
+                                Embersculpt.util.setBodyTemperature(player, currentTemperature[0]);
                             }
                         }
                     }
                 }
             }
         }.runTaskAtLocation(Embersculpt.instance, playerLocation);
-        return heatSourceTemperatureChange[0];
+    }
+
+
+    // Calculate the rate of temperature change based on the current temperature
+    private double calculateTemperatureRate(double temperature) {
+        if (temperature < -100) {
+            return 0.07; // Very slow rate
+        } else if (temperature < -70) {
+            return 0.04; // Slower rate
+        } else if (temperature < -30) {
+            return 0.02; // Slow rate
+        } else if (temperature < -10) {
+            return 0.01; // Moderate rate
+        } else if (temperature < 37) {
+            return 0.007; // Normal rate
+        } else if (temperature < 46) {
+            return 0.003; // Moderate rate
+        } else if (temperature < 80) {
+            return 0.002; // Slow rate
+        } else if (temperature < 100) {
+            return 0.001; // Slower rate
+        } else {
+            return 0.0005; // Very slow rate
+        }
+    }
+
+
+
+
+
+    // Method to check if a material is a heat source
+    private boolean isHeatSource(Material material) {
+        switch (material) {
+            case TORCH:
+            case LAVA:
+            case CAMPFIRE:
+            case SOUL_CAMPFIRE:
+            case LANTERN:
+            case SOUL_LANTERN:
+            case LIGHT:
+            case SHROOMLIGHT:
+            case GLOWSTONE:
+            case GLOW_ITEM_FRAME:
+            case GLOW_BERRIES:
+            case FIRE:
+            case SOUL_FIRE:
+            case SEA_LANTERN:
+            case OCHRE_FROGLIGHT:
+            case PEARLESCENT_FROGLIGHT:
+            case VERDANT_FROGLIGHT:
+                return true;
+            default:
+                return false;
+        }
     }
 }

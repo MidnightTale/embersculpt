@@ -21,19 +21,19 @@ public class EffectPlayer {
                     applyPotionEffect(player, PotionEffectType.WEAKNESS, 300, 0);
                     applyPotionEffect(player, PotionEffectType.SPEED, 300, 0);
                 } else if (bodyTemperature > 95 && bodyTemperature < 100) {
-                    applyPotionEffect(player, PotionEffectType.CONFUSION, 300, 0);
+                    applyPotionEffect(player, PotionEffectType.HUNGER, 300, 0);
                     applyPotionEffect(player, PotionEffectType.WEAKNESS, 300, 0);
                     applyPotionEffect(player, PotionEffectType.SPEED, 300, 1);
                 } else if (bodyTemperature >= 100) {
                     applyPotionEffect(player, PotionEffectType.DARKNESS, 300, 0);
-                    applyPotionEffect(player, PotionEffectType.CONFUSION, 300, 0);
+                    applyPotionEffect(player, PotionEffectType.HUNGER, 300, 0);
                     applyPotionEffect(player, PotionEffectType.SPEED, 300, 1);
                     applyPotionEffect(player, PotionEffectType.WEAKNESS, 300, 0);
                     Embersculpt.instance.timeadd++;
 
                     if (Embersculpt.instance.timeadd >= Embersculpt.instance.bodyTemperatureAddition) {
                         player.setFireTicks(20 * 60);
-                        applyPotionEffect(player, PotionEffectType.CONFUSION, 300, 1);
+                        applyPotionEffect(player, PotionEffectType.HUNGER, 300, 1);
                         applyPotionEffect(player, PotionEffectType.BLINDNESS, 300, 1);
                         applyPotionEffect(player, PotionEffectType.WEAKNESS, 300, 2);
                         applyPotionEffect(player, PotionEffectType.SPEED, 300, 3);
@@ -54,22 +54,20 @@ public class EffectPlayer {
                     applyPotionEffect(player, PotionEffectType.SLOW_DIGGING, 300, 0);
                     applyPotionEffect(player, PotionEffectType.SLOW, 300, 0);
                 } else if (bodyTemperature > -80) {
-                    applyPotionEffect(player, PotionEffectType.CONFUSION, 300, 0);
+                    applyPotionEffect(player, PotionEffectType.HUNGER, 300, 0);
                     applyPotionEffect(player, PotionEffectType.SLOW_DIGGING, 300, 0);
                     applyPotionEffect(player, PotionEffectType.SLOW, 300, 1);
-                } else if (bodyTemperature > -100) {
-                    player.setFreezeTicks(20 * 30);
                 } else if (bodyTemperature == -100) {
                     Embersculpt.instance.timeadd++;
                     applyPotionEffect(player, PotionEffectType.SLOW, 600, 1);
                     applyPotionEffect(player, PotionEffectType.SLOW_DIGGING, 600, 0);
-                    applyPotionEffect(player, PotionEffectType.CONFUSION, 600, 0);
+                    applyPotionEffect(player, PotionEffectType.HUNGER, 600, 0);
 
                     if (Embersculpt.instance.timeadd >= Embersculpt.instance.bodyTemperatureAddition) {
-                        player.setFireTicks(20 * 120);
+                        player.setFreezeTicks(600);
                         applyPotionEffect(player, PotionEffectType.SLOW_DIGGING, 600, 1);
                         applyPotionEffect(player, PotionEffectType.WITHER, 600, 0);
-                        applyPotionEffect(player, PotionEffectType.CONFUSION, 600, 1);
+                        applyPotionEffect(player, PotionEffectType.HUNGER, 600, 0);
                         applyPotionEffect(player, PotionEffectType.SLOW, 600, 2);
                         Embersculpt.instance.timeadd = 0;
                     }

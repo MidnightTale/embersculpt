@@ -1,5 +1,6 @@
 package net.hynse.embersculpt;
 
+import me.nahu.scheduler.wrapper.runnable.WrappedRunnable;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -54,7 +55,12 @@ public class EventListener implements Listener {
         // Check if the player is in the area of a lingering potion
         if (Embersculpt.cooldown.isPlayerInLingeringCloud(player)) {
             // Apply low temperature effect
-            Embersculpt.cooldown.reduceTemperatureOnLingeringCloud(player);
+            new WrappedRunnable() {
+                @Override
+                public void run() {
+                    Embersculpt.cooldown.reduceTemperatureOnLingeringCloud(player);
+                }
+            }.runTaskAtEntity(Embersculpt.instance,player);
         }
     }
 
