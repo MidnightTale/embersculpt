@@ -1,6 +1,7 @@
 package net.hynse.embersculpt;
 
 import me.nahu.scheduler.wrapper.runnable.WrappedRunnable;
+import org.bukkit.GameMode;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -42,7 +43,7 @@ public class EventListener implements Listener {
         ItemStack item = event.getItem();
 
         // Check if the consumed item is water or a potion
-        if (Embersculpt.cooldown.isWaterOrPotion(item.getType())) {
+        if (Embersculpt.cooldown.isWaterOrPotion(item.getType()) && !player.isDead() && player.getGameMode() == GameMode.SURVIVAL) {
             // Apply temperature reduction for 30 seconds at a rate of 3 per second
             Embersculpt.cooldown.reduceTemperatureOnDrink(player);
         }
@@ -53,7 +54,7 @@ public class EventListener implements Listener {
         Player player = event.getPlayer();
 
         // Check if the player is in the area of a lingering potion
-        if (Embersculpt.cooldown.isPlayerInLingeringCloud(player)) {
+        if (Embersculpt.cooldown.isPlayerInLingeringCloud(player) && !player.isDead() && player.getGameMode() == GameMode.SURVIVAL) {
             // Apply low temperature effect
             new WrappedRunnable() {
                 @Override
@@ -68,7 +69,7 @@ public class EventListener implements Listener {
     public void onPotionSplash(PotionSplashEvent event) {
         Collection<LivingEntity> affectedEntities = event.getAffectedEntities();
         for (LivingEntity entity : affectedEntities) {
-            if (entity instanceof Player player) {
+            if (entity instanceof Player player && !player.isDead() && player.getGameMode() == GameMode.SURVIVAL) {
                 // Apply temperature reduction for 30 seconds at a rate of 3 per second
                 Embersculpt.cooldown.reduceTemperaturenPotionSplash(player);
             }
@@ -77,7 +78,7 @@ public class EventListener implements Listener {
     @EventHandler
     public void onPlayerSprintStart(PlayerToggleSprintEvent event) {
         Player player = event.getPlayer();
-        if (event.isSprinting()) {
+        if (event.isSprinting() && !player.isDead() && player.getGameMode() == GameMode.SURVIVAL) {
             Embersculpt.instance.sprintStartTime.put(player.getUniqueId(), System.currentTimeMillis());
         }
     }
@@ -85,7 +86,7 @@ public class EventListener implements Listener {
     @EventHandler
     public void onPlayerWalkStart(PlayerMoveEvent event) {
         Player player = event.getPlayer();
-        if (event.getTo().distanceSquared(event.getFrom()) > 0.001) {
+        if (event.getTo().distanceSquared(event.getFrom()) > 0.001 && !player.isDead() && player.getGameMode() == GameMode.SURVIVAL) {
             Embersculpt.instance.walkStartTime.put(player.getUniqueId(), System.currentTimeMillis());
         }
     }

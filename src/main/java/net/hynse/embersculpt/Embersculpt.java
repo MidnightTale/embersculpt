@@ -3,6 +3,7 @@ package net.hynse.embersculpt;
 import me.nahu.scheduler.wrapper.FoliaWrappedJavaPlugin;
 import me.nahu.scheduler.wrapper.runnable.WrappedRunnable;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
@@ -10,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Level;
 
 public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listener {
     public static Embersculpt instance;
@@ -60,6 +62,14 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             }
         }.runTaskTimer(this, 1, 300);
         getServer().getPluginManager().registerEvents(this, this);
+        // Check if PlaceholderAPI is enabled
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            // Pass ReputationManager instance to ReputifyPlaceholderExpansion constructor
+            new EmberPlaceholderExpansion().register();
+            getLogger().log(Level.INFO, "PlaceholderAPI Hooked");
+        } else {
+            getLogger().log(Level.WARNING, "PlaceholderAPI not found. Some features may not work.");
+        }
     }
 
     @Override
@@ -73,7 +83,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
     private void updateBodyTemperature() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             // Check if the player is in a death state
-            if (player.isDead()) {
+            if (player.isDead() || player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
                 continue; // Skip updating temperature for dead players
             }
             new WrappedRunnable() {
@@ -93,7 +103,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
 
                     // Get temperature change based on proximity to heat sources
 //                    double heatSourceTemperatureChange = blockTemperature.calculateTemperatureHeatSources(player,7);
-                    Embersculpt.blockTemperature.calculateTemperatureHeatSources(player,3);
+                    Embersculpt.blockTemperature.calculateTemperatureHeatSources(player,7);
 
                     // Combine all factors to update player's temperature
                     double currentTemperature = playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0);

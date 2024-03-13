@@ -3,3 +3,5 @@ version: '${version}'
 main: net.hynse.embersculpt.Embersculpt
 api-version: '1.20'
 folia-supported: true
+soft-depend:
+  - PlaceholderAPI

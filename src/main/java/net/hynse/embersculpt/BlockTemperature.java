@@ -1,37 +1,56 @@
 package net.hynse.embersculpt;
 
 import me.nahu.scheduler.wrapper.runnable.WrappedRunnable;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 public class BlockTemperature {
+    int waterTimer = 0;
+    int snowTimer = 0;
+    int lavaTimer = 0;
+    int fireTimer = 0;
     public void BlockTemperature(Player player) {
         Block block = player.getLocation().getBlock();
 
         double currentTemperature = Embersculpt.playerDataManager.bodyTemperatureMap.getOrDefault(player, 0.0);
 
-        if (block.getType() == Material.WATER || block.getType() == Material.WATER_CAULDRON) {
+        if (block.getType() == Material.WATER || block.getType() == Material.WATER_CAULDRON && !player.isDead() && player.getGameMode() == GameMode.SURVIVAL) {
+            // Increment the water timer
+            waterTimer++;
             // Decrease the player's temperature until it reaches 0
             if (currentTemperature > -100) {
-                currentTemperature -= (currentTemperature < -30 ? 1.6 : 0.1); // Adjust the rate at which temperature decreases
+                currentTemperature -= (currentTemperature < -30 ? 0.6 : 0.1) * waterTimer; // Adjust the rate at which temperature decreases
             }
-        } else if (block.getType() == Material.POWDER_SNOW || block.getType() == Material.POWDER_SNOW_CAULDRON) {
+        } else if (block.getType() == Material.POWDER_SNOW || block.getType() == Material.POWDER_SNOW_CAULDRON && !player.isDead() && player.getGameMode() == GameMode.SURVIVAL) {
+            // Increment the snow timer
+            snowTimer++;
             // Decrease the player's temperature until it reaches -100
             if (currentTemperature > -100) {
-                currentTemperature -= (currentTemperature < -50 ? 2.7 : 0.5); // Adjust the rate at which temperature decreases
+                currentTemperature -= (currentTemperature < -50 ? 0.9 : 0.1) * snowTimer; // Adjust the rate at which temperature decreases
             }
-        } else if (block.getType() == Material.LAVA || block.getType() == Material.LAVA_CAULDRON) {
+        } else if (block.getType() == Material.LAVA || block.getType() == Material.LAVA_CAULDRON && !player.isDead() && player.getGameMode() == GameMode.SURVIVAL) {
+            // Increment the lava timer
+            lavaTimer++;
             // Decrease the player's temperature until it reaches 0
             if (currentTemperature < 100) {
-                currentTemperature += (currentTemperature > 0 ? 1.2 : 1.9); // Adjust the rate at which temperature decreases
+                currentTemperature += (currentTemperature > 0 ? 0.7 : 0.5) * lavaTimer; // Adjust the rate at which temperature decreases
             }
-        } else if (block.getType() == Material.FIRE || block.getType() == Material.SOUL_FIRE || block.getType() == Material.CAMPFIRE || block.getType() == Material.SOUL_CAMPFIRE) {
+        } else if (block.getType() == Material.FIRE || block.getType() == Material.SOUL_FIRE || block.getType() == Material.CAMPFIRE || block.getType() == Material.SOUL_CAMPFIRE && !player.isDead() && player.getGameMode() == GameMode.SURVIVAL) {
+            // Increment the fire timer
+            fireTimer++;
             // Decrease the player's temperature until it reaches 0
             if (currentTemperature < 100) {
-                currentTemperature += (currentTemperature > 0 ? 0.4 : 0.7); // Adjust the rate at which temperature decreases
+                currentTemperature += (currentTemperature > 0 ? 0.3 : 0.2) * fireTimer; // Adjust the rate at which temperature decreases
             }
+        } else {
+            // Reset timers when not in any specific environment
+            waterTimer = 0;
+            snowTimer = 0;
+            lavaTimer = 0;
+            fireTimer = 0;
         }
 
         // Update the player's body temperature
@@ -58,7 +77,7 @@ public class BlockTemperature {
                             if (isHeatSource(blockMaterial) && currentLocation.getBlock().getType() == Material.AIR) {
                                 // Adjust the temperature based on the rate
                                 double rate = calculateTemperatureRate(currentTemperature[0]);
-                                currentTemperature[0] += (currentTemperature[0] > 0 ? 0.1 : 0.3) * rate * ratesky;
+                                currentTemperature[0] += (currentTemperature[0] > 0 ? 0.1 : 16) * rate * ratesky;
 
                                 // Update the player's body temperature
                                 Embersculpt.util.setBodyTemperature(player, currentTemperature[0]);

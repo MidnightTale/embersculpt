@@ -18,8 +18,8 @@ public class Cooldown {
     }
     public void reduceTemperaturenPotionSplash(Player player) {
         // Apply temperature reduction for 30 seconds at a rate of 3 per second
-        int durationInSeconds = 3;
-        double reductionRate = 12.6;
+        int durationInSeconds = 1;
+        double reductionRate = 26.6;
 
         new WrappedRunnable() {
             int secondsRemaining = durationInSeconds;
@@ -51,7 +51,7 @@ public class Cooldown {
     }
     public void reduceTemperatureOnLingeringCloud(Player player) {
         // Apply temperature reduction for 30 seconds at a rate of 3 per second
-        int durationInSeconds = 30;
+        int durationInSeconds = 3;
         double reductionRate = 0.3;
 
         new WrappedRunnable() {
@@ -84,7 +84,7 @@ public class Cooldown {
     }
     public void reduceTemperatureOnDrink(Player player) {
         // Apply temperature reduction for 30 seconds at a rate of 3 per second
-        int durationInSeconds = 30;
+        int durationInSeconds = 8;
         double reductionRate = 3.3;
 
         new WrappedRunnable() {
