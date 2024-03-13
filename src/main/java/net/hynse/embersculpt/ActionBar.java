@@ -27,24 +27,25 @@ public class ActionBar {
         new WrappedRunnable() {
             @Override
             public void run() {
-                long fullTime = world.getFullTime();
+                long fullTime = world.getFullTime(); // Add an offset of 6 hours
 
-        long dayCount = fullTime / 24000;
-        long time = fullTime % 24000;
-        boolean isStormy = world.hasStorm();
+                long dayCount = fullTime / 24000;
+                long time = fullTime % 24000;
+                boolean isStormy = world.hasStorm();
 
-        long hours = (time / 1000) % 24 + 6;
-        long minutes = (time % 1000) * 60 / 1000;
+                long hours = (time / 1000 + 6) % 24; // Adjusted to start from 06:00
+                long minutes = (time % 1000) * 60 / 1000;
 
-        boolean isDay = time >= 0 && time < 12000;
-        String timeIcon = (hours >= 6 && hours < 18) ? "\u2600" : "\u263D";
-        String thunderEmoji = "\u26C8"; // Thunder emoji
-        String rainEmoji = "\uD83C\uDF27"; // Rain emoji
-        String cloudEmoji = "\u2601"; // Cloud emoji
-        String weatherIcon = isStormy ? thunderEmoji : (world.isClearWeather() ? cloudEmoji : rainEmoji);
-        String timeString = String.format("%02d:%02d", hours, minutes);
+                boolean isDay = time >= 0 && time < 12000;
+                String timeIcon = (hours >= 6 && hours < 18) ? "\u2600" : "\u263D";
+                String thunderEmoji = "\u26C8"; // Thunder emoji
+                String rainEmoji = "\uD83C\uDF27"; // Rain emoji
+                String cloudEmoji = "\u2601"; // Cloud emoji
+                String weatherIcon = isStormy ? thunderEmoji : (world.isClearWeather() ? cloudEmoji : rainEmoji);
+                String timeString = String.format("%02d:%02d", hours, minutes);
 
-        // Determine the symbols for temperature change
+
+                // Determine the symbols for temperature change
         Component temperatureSymbol = temperatureChangeSymbol(temperature);
 
         // Get the appropriate multiplier based on the time of day
