@@ -65,9 +65,9 @@ public class ActionBar {
                         .append(Component.text(temperatureString).color(temperatureColor))
                         .append(temperatureSymbol) // Use temperatureSymbol directly
                         .append(Component.text().color(NamedTextColor.GRAY).content(" x" + rateString))
-                        .append(Component.text().color(NamedTextColor.GRAY).content(" | " + timeIcon + " "))
-                        .append(Component.text().color(NamedTextColor.YELLOW).content(String.valueOf(dayCount)))
-                        .append(Component.text().color(NamedTextColor.GRAY).content(" (" + timeString + ")"))
+//                        .append(Component.text().color(NamedTextColor.GRAY).content(" | " + timeIcon + " "))
+//                        .append(Component.text().color(NamedTextColor.YELLOW).content(String.valueOf(dayCount)))
+//                        .append(Component.text().color(NamedTextColor.GRAY).content(" (" + timeString + ")"))
                         .build();
 
         // Send action bar message to the player

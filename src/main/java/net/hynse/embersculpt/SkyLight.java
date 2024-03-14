@@ -32,8 +32,8 @@ public class SkyLight {
         if (isDay) {
             // Adjust rates for the Nether
             if (isNether) {
-                minRiseChangeRate = 0.3; // Adjust this value
-                maxRiseChangeRate = 1.5; // Adjust this value
+                minRiseChangeRate = 0.6; // Adjust this value
+                maxRiseChangeRate = 3.3; // Adjust this value
                 minDecreaseChangeRate = 0.2; // Adjust this value
                 maxDecreaseChangeRate = 0.7; // Adjust this value
             } else if (isEnd) {
@@ -52,8 +52,8 @@ public class SkyLight {
         } else {
             // Adjust rates for the Nether
             if (isNether) {
-                minRiseChangeRate = 0.3; // Adjust this value
-                maxRiseChangeRate = 1.5; // Adjust this value
+                minRiseChangeRate = 0.6; // Adjust this value
+                maxRiseChangeRate = 3.3; // Adjust this value
                 minDecreaseChangeRate = 0.2; // Adjust this value
                 maxDecreaseChangeRate = 0.7; // Adjust this value
             } else if (isEnd) {
