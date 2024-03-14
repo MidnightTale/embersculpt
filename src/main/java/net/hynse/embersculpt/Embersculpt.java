@@ -51,7 +51,7 @@ public final class Embersculpt extends FoliaWrappedJavaPlugin implements Listene
             public void run() {
                 updateBodyTemperature();
             }
-        }.runTaskTimer(this, 1, 20);
+        }.runTaskTimer(this, 1, 40);
         new WrappedRunnable() {
             @Override
             public void run() {
